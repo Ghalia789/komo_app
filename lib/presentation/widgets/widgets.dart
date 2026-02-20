@@ -1,5 +1,8 @@
 // widgets/widgets.dart
 export 'inputs/komo_text_field.dart';
+export 'inputs/komo_dropdown.dart';
+export 'inputs/komo_date_picker.dart';
+export 'inputs/komo_chip_selector.dart';
 export 'buttons/komo_button.dart';
 export 'cards/komo_card.dart';
 export 'feedback/komo_avatar.dart';
