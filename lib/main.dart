@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:komo_app/presentation/pages/login_page.dart';
-import 'package:komo_app/presentation/pages/onboarding_page.dart';
-import 'package:komo_app/presentation/pages/splash_page.dart';
+
 import 'core/theme/app_theme.dart';
+import 'presentation/pages/complete_profile_page.dart';
+import 'presentation/pages/login_page.dart';
+import 'presentation/pages/onboarding_page.dart';
 import 'presentation/pages/signup_page.dart';
+import 'presentation/pages/splash_page.dart';
 
 void main() {
   runApp(const KomoApp());
@@ -22,6 +24,7 @@ class KomoApp extends StatelessWidget {
         '/onboarding': (context) => const OnboardingPage(),
         '/login': (context) => const LoginPage(),
         '/signup': (context) => const SignupPage(), 
+        '/complete-profile': (context) => const CompleteProfilePage(),
         //'/dashboard': (context) => const DashboardPage(), // Create later
       },
     );
