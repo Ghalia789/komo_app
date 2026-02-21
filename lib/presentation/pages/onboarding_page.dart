@@ -28,17 +28,17 @@ class _OnboardingViewState extends State<OnboardingView> {
 
   final List<OnboardingData> _pages = [
     OnboardingData(
-      image: 'assets/images/onboarding_1.png',
+      image: 'assets/images/hand_with_clipboard.png',
       title: 'Organize\nyour work',
       subtitle: 'Create projects, add tasks, track progress',
     ),
     OnboardingData(
-      image: 'assets/images/onboarding_2.png',
+      image: 'assets/images/collaborating.png',
       title: 'Work\ntogether',
       subtitle: 'Invite team members, assign tasks, comment',
     ),
     OnboardingData(
-      image: 'assets/images/onboarding_3.png',
+      image: 'assets/images/lightbulb.png',
       title: 'Ready to start?',
       subtitle: '',
       isLast: true,
