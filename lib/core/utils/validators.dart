@@ -1,20 +1,15 @@
-// Validation functions return error message or null (valid)
-
 class Validators {
-  // Email validation
   static String? email(String? value) {
     if (value == null || value.isEmpty) {
       return 'Email is required';
     }
-    // Simple regex for email
     final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
     if (!emailRegex.hasMatch(value)) {
       return 'Please enter a valid email';
     }
-    return null; // Valid
+    return null;
   }
 
-  // Password validation
   static String? password(String? value) {
     if (value == null || value.isEmpty) {
       return 'Password is required';
@@ -25,21 +20,19 @@ class Validators {
     return null;
   }
 
-  // Required field (name, title, etc.)
-  static String? required(String? value, {String fieldName = 'This field'}) {
-    if (value == null || value.trim().isEmpty) {
-      return '$fieldName is required';
-    }
-    return null;
-  }
-
-  // Confirm password
   static String? confirmPassword(String? value, String originalPassword) {
     if (value == null || value.isEmpty) {
       return 'Please confirm your password';
     }
     if (value != originalPassword) {
       return 'Passwords do not match';
+    }
+    return null;
+  }
+
+  static String? required(String? value, {String fieldName = 'This field'}) {
+    if (value == null || value.trim().isEmpty) {
+      return '$fieldName is required';
     }
     return null;
   }
