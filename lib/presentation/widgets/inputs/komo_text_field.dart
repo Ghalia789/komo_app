@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_colors.dart';
+import 'package:komo_app/core/theme/app_colors.dart';
 
 class KomoTextField extends StatelessWidget {
   final String? label;
@@ -9,7 +9,8 @@ class KomoTextField extends StatelessWidget {
   final TextInputType keyboardType;
   final Widget? prefixIcon;
   final Widget? suffixIcon;
-  final String? Function(String?)? validator;
+  final String? errorText;        // ADD: Show validation error
+  final String? Function(String?)? validator;  // ADD: Validation function
   final void Function(String)? onChanged;
 
   const KomoTextField({
@@ -21,7 +22,8 @@ class KomoTextField extends StatelessWidget {
     this.keyboardType = TextInputType.text,
     this.prefixIcon,
     this.suffixIcon,
-    this.validator,
+    this.errorText,              // NEW
+    this.validator,              // NEW
     this.onChanged,
   });
 
@@ -45,7 +47,7 @@ class KomoTextField extends StatelessWidget {
           controller: controller,
           obscureText: obscureText,
           keyboardType: keyboardType,
-          validator: validator,
+          validator: validator,     // Use validator
           onChanged: onChanged,
           decoration: InputDecoration(
             hintText: hint,
@@ -53,6 +55,8 @@ class KomoTextField extends StatelessWidget {
             suffixIcon: suffixIcon,
             filled: true,
             fillColor: AppColors.background,
+            
+            // Normal border
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
@@ -61,10 +65,23 @@ class KomoTextField extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
             ),
+            
+            // Focused border
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: AppColors.primary, width: 2),
             ),
+            
+            // ERROR border (red when invalid)
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.error, width: 2),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.error, width: 2),
+            ),
+            
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
               vertical: 16,
@@ -72,6 +89,13 @@ class KomoTextField extends StatelessWidget {
             hintStyle: const TextStyle(
               color: AppColors.textHint,
               fontSize: 14,
+            ),
+            
+            // Show error text below field
+            errorText: errorText,     // NEW
+            errorStyle: const TextStyle(
+              color: AppColors.error,
+              fontSize: 12,
             ),
           ),
         ),
