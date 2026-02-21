@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:komo_app/presentation/pages/login_page.dart';
+import 'package:komo_app/presentation/pages/onboarding_page.dart';
+import 'package:komo_app/presentation/pages/splash_page.dart';
 import 'core/theme/app_theme.dart';
 
 void main() {
@@ -13,7 +16,12 @@ class KomoApp extends StatelessWidget {
     return MaterialApp(
       title: 'KOMO',
       theme: AppTheme.lightTheme,
-      //home: const SplashPage(), // We'll create this
-    );
+routes: {
+  '/': (context) => const SplashPage(),
+  '/onboarding': (context) => const OnboardingPage(),
+  '/login': (context) => const LoginPage(),        // ADD THIS
+  //'/signup': (context) => const SignupPage(),      // Create next
+  //'/dashboard': (context) => const DashboardPage(), // Create later
+},    );
   }
 }
