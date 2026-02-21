@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+// ignore: unused_import
 import '../../../core/theme/app_colors.dart';
 
 class KomoBadge extends StatelessWidget {
