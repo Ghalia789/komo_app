@@ -15,35 +15,23 @@ class SignupBloc extends Bloc<SignupEvent, SignupState> {
   }
 
   void _onEmailChanged(SignupEmailChanged event, Emitter<SignupState> emit) {
-    final error = Validators.email(event.email);
     emit(state.copyWith(
       email: event.email,
-      emailError: error,
+      emailError: null,  // Clear while typing
     ));
   }
 
   void _onPasswordChanged(SignupPasswordChanged event, Emitter<SignupState> emit) {
-    final error = Validators.password(event.password);
-    
-    // Re-validate confirm password if it exists (real-time matching)
-    String? confirmError;
-    if (state.confirmPassword.isNotEmpty) {
-      confirmError = Validators.confirmPassword(state.confirmPassword, event.password);
-    }
-    
     emit(state.copyWith(
       password: event.password,
-      passwordError: error,
-      confirmPasswordError: confirmError,
+      passwordError: null,  // Clear while typing
     ));
   }
 
   void _onConfirmPasswordChanged(SignupConfirmPasswordChanged event, Emitter<SignupState> emit) {
-    final error = Validators.confirmPassword(event.confirmPassword, state.password);
-    
     emit(state.copyWith(
       confirmPassword: event.confirmPassword,
-      confirmPasswordError: error,
+      confirmPasswordError: null,  // Clear while typing
     ));
   }
 
@@ -56,6 +44,7 @@ class SignupBloc extends Bloc<SignupEvent, SignupState> {
   }
 
   Future<void> _onSubmitted(SignupSubmitted event, Emitter<SignupState> emit) async {
+    // Validate ALL fields on submit only
     final emailError = Validators.email(state.email);
     final passwordError = Validators.password(state.password);
     final confirmError = Validators.confirmPassword(state.confirmPassword, state.password);
@@ -66,14 +55,12 @@ class SignupBloc extends Bloc<SignupEvent, SignupState> {
         passwordError: passwordError,
         confirmPasswordError: confirmError,
       ));
-      return;
+      return;  // Stop, show errors
     }
 
+    // Valid, proceed
     emit(state.copyWith(isLoading: true, errorMessage: null));
-
-    // TODO: Call Firebase Auth createUser
     await Future.delayed(const Duration(seconds: 2));
-
     emit(state.copyWith(isLoading: false, isSuccess: true));
   }
 
