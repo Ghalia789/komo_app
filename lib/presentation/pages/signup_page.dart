@@ -32,7 +32,7 @@ class SignupView extends StatelessWidget {
               
               // LOGO
               Image.asset(
-                'assets/images/logo.png',
+                'assets/images/KOMO_LOGO_MINI.png',
                 height: 80,
               ),
               

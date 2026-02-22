@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/theme/app_colors.dart';
 import '../blocs/blocs.dart';
-import '../widgets/widgets.dart';
 
 class OnboardingPage extends StatelessWidget {
   const OnboardingPage({super.key});
@@ -116,74 +115,125 @@ class _OnboardingViewState extends State<OnboardingView> {
                 ),
               ),
               
-              // Bottom section
+              // Bottom section - FIXED
               Padding(
                 padding: const EdgeInsets.all(24),
                 child: BlocBuilder<OnboardingBloc, OnboardingState>(
                   builder: (context, state) {
-                    return Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        // Dots
-                        Row(
-                          children: List.generate(
-                            _pages.length,
-                            (index) => Container(
-                              margin: const EdgeInsets.symmetric(horizontal: 4),
-                              width: index == state.currentPage ? 8 : 6,
-                              height: index == state.currentPage ? 8 : 6,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: index == state.currentPage
-                                    ? AppColors.primary
-                                    : AppColors.textSecondary.withOpacity(0.3),
+                    // Pages 1-2: Dots + Small Next button
+                    if (!state.isLastPage) {
+                      return Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          // Dots
+                          Row(
+                            children: List.generate(
+                              _pages.length,
+                              (index) => Container(
+                                margin: const EdgeInsets.symmetric(horizontal: 4),
+                                width: index == state.currentPage ? 8 : 6,
+                                height: index == state.currentPage ? 8 : 6,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: index == state.currentPage
+                                      ? AppColors.primary
+                                      : AppColors.textSecondary.withOpacity(0.3),
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                        
-                        // Button
-                        if (!state.isLastPage)
+                          
+                          // Small Next button (NOT KomoButton)
                           SizedBox(
-                            width: 100,
-                            child: KomoButton(
-                              text: 'Next',
-                              type: KomoButtonType.primary,
+                            width: 90,
+                            height: 40,
+                            child: ElevatedButton(
                               onPressed: () {
                                 context.read<OnboardingBloc>().add(OnboardingNextPressed());
                               },
-                            ),
-                          )
-                        else
-                          Expanded(
-                            child: Column(
-                              children: [
-                                KomoButton(
-                                  text: 'Get Started',
-                                  type: KomoButtonType.primary,
-                                  onPressed: () {
-                                    context.read<OnboardingBloc>().add(OnboardingGetStartedPressed());
-                                    Navigator.of(context).pushReplacementNamed('/signup');
-                                  },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primary,
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
                                 ),
-                                const SizedBox(height: 16),
-                                GestureDetector(
-                                  onTap: () {
-                                    context.read<OnboardingBloc>().add(OnboardingLoginPressed());
-                                    Navigator.of(context).pushReplacementNamed('/login');
-                                  },
-                                  child: Text(
-                                    'I already have an account',
+                                padding: EdgeInsets.zero,
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: const [
+                                  Text(
+                                    'Next',
                                     style: TextStyle(
                                       fontSize: 14,
-                                      color: AppColors.primary,
-                                      decoration: TextDecoration.underline,
+                                      fontWeight: FontWeight.w500,
                                     ),
                                   ),
+                                  SizedBox(width: 4),
+                                  Icon(Icons.arrow_forward, size: 16),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    }
+                    
+                    // Page 3: Get Started button + Login link (centered)
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Small dark Get Started button
+                        SizedBox(
+                          width: 120,
+                          height: 44,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              context.read<OnboardingBloc>().add(OnboardingGetStartedPressed());
+                              Navigator.of(context).pushReplacementNamed('/signup');
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primaryDark, // Dark purple
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(22),
+                              ),
+                              padding: EdgeInsets.zero,
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: const [
+                                Text(
+                                  'Get Started',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
+                                SizedBox(width: 4),
+                                Icon(Icons.arrow_forward, size: 16),
                               ],
                             ),
                           ),
+                        ),
+                        const SizedBox(height: 16),
+                        // Login link
+                        GestureDetector(
+                          onTap: () {
+                            context.read<OnboardingBloc>().add(OnboardingLoginPressed());
+                            Navigator.of(context).pushReplacementNamed('/login');
+                          },
+                          child: Text(
+                            'I already have an account',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: AppColors.primary,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ),
                       ],
                     );
                   },
