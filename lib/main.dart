@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'core/theme/app_theme.dart';
 import 'presentation/pages/complete_profile_page.dart';
+import 'presentation/pages/dashboard_page.dart';
 import 'presentation/pages/login_page.dart';
 import 'presentation/pages/onboarding_page.dart';
 import 'presentation/pages/signup_page.dart';
@@ -26,7 +27,7 @@ class KomoApp extends StatelessWidget {
         '/login': (context) => const LoginPage(),
         '/signup': (context) => const SignupPage(), 
         '/complete-profile': (context) => const CompleteProfilePage(),
-        //'/dashboard': (context) => const DashboardPage(), // Create later
+        '/dashboard': (context) => const DashboardPage(), // Create later
       },
     );
   }
