@@ -28,15 +28,15 @@ class SignupView extends StatelessWidget {
           padding: const EdgeInsets.all(24),
           child: Column(
             children: [
-              const SizedBox(height: 60),
+              const SizedBox(height: 35),
               
               // LOGO
               Image.asset(
                 'assets/images/KOMO_LOGO_MINI.png',
-                height: 80,
+                height: 130,
               ),
               
-              const SizedBox(height: 40),
+              const SizedBox(height: 25),
               
               // WHITE CARD
               Container(

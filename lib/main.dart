@@ -19,6 +19,7 @@ class KomoApp extends StatelessWidget {
     return MaterialApp(
       title: 'KOMO',
       theme: AppTheme.lightTheme,
+      debugShowCheckedModeBanner: false,
       routes: {
         '/': (context) => const SplashPage(),
         '/onboarding': (context) => const OnboardingPage(),

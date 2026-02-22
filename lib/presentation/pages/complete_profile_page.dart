@@ -50,7 +50,7 @@ class CompleteProfileView extends StatelessWidget {
                     builder: (context, state) {
                       return CircleAvatar(
                         radius: 60,
-                        backgroundColor: AppColors.background,
+                        backgroundColor: AppColors.primary.withOpacity(0.1),
                         backgroundImage: state.avatarPath != null
                             ? NetworkImage(state.avatarPath!)
                             : null,

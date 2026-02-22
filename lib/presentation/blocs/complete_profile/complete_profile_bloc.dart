@@ -14,10 +14,10 @@ class CompleteProfileBloc extends Bloc<CompleteProfileEvent, CompleteProfileStat
   }
 
   void _onNameChanged(CompleteProfileNameChanged event, Emitter<CompleteProfileState> emit) {
-    final error = Validators.required(event.name, fieldName: 'Full Name');
+    //final error = Validators.required(event.name, fieldName: 'Full Name');
     emit(state.copyWith(
       name: event.name,
-      nameError: error,
+      nameError: null,
     ));
   }
 
