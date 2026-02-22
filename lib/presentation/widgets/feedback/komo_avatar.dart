@@ -31,7 +31,7 @@ class KomoAvatar extends StatelessWidget {
       AppColors.success,
       AppColors.warning,
     ];
-    return colors[name?.hashCode ?? 0 % colors.length];
+    return colors[(name?.hashCode ?? 0).abs() % colors.length];
   }
 
   @override
