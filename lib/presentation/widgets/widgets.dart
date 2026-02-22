@@ -6,8 +6,12 @@ export 'inputs/komo_chip_selector.dart';
 export 'inputs/komo_segmented_control.dart';
 export 'buttons/komo_button.dart';
 export 'cards/komo_card.dart';
+export 'cards/task_card.dart';
+export 'cards/subtask_item.dart';
+export 'cards/comment_item.dart';
 export 'feedback/komo_avatar.dart';
 export 'feedback/komo_badge.dart';
 export 'feedback/komo_bottom_nav.dart';
 export 'feedback/komo_loader.dart';
 export 'feedback/komo_animated_dots.dart';
+
