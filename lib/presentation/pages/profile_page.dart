@@ -1,0 +1,388 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../core/theme/app_colors.dart';
+import '../blocs/profile/profile_bloc_exports.dart';
+import '../widgets/widgets.dart';
+
+class ProfilePage extends StatelessWidget {
+  const ProfilePage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (context) => ProfileBloc()..add(ProfileLoadData()),
+      child: const ProfileView(),
+    );
+  }
+}
+
+class ProfileView extends StatelessWidget {
+  const ProfileView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        title: const Text('Profile'),
+        backgroundColor: AppColors.surface,
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => Navigator.pushNamed(context, '/settings'),
+          ),
+        ],
+      ),
+      body: BlocConsumer<ProfileBloc, ProfileState>(
+        listener: (context, state) {
+          if (state.isLoggingOut) {
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              '/login',
+              (route) => false,
+            );
+          }
+        },
+        builder: (context, state) {
+          if (state.isLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                // PROFILE HEADER
+                _buildProfileHeader(context, state),
+                const SizedBox(height: 32),
+
+                // STATS ROW
+                _buildStatsRow(state),
+                const SizedBox(height: 32),
+
+                // PROFILE OPTIONS
+                _buildSection(
+                  title: 'Account',
+                  children: [
+                    _buildOptionTile(
+                      icon: Icons.person_outline,
+                      title: 'Edit Profile',
+                      onTap: () {},
+                    ),
+                    _buildOptionTile(
+                      icon: Icons.lock_outline,
+                      title: 'Change Password',
+                      onTap: () {},
+                    ),
+                    _buildOptionTile(
+                      icon: Icons.email_outlined,
+                      title: 'Email Preferences',
+                      onTap: () {},
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                _buildSection(
+                  title: 'Workspace',
+                  children: [
+                    _buildOptionTile(
+                      icon: Icons.people_outline,
+                      title: 'Team Members',
+                      subtitle: '${state.teamMembersCount} members',
+                      onTap: () {},
+                    ),
+                    _buildOptionTile(
+                      icon: Icons.folder_outlined,
+                      title: 'My Projects',
+                      subtitle: '${state.activeProjectsCount} active projects',
+                      onTap: () {},
+                    ),
+                    _buildOptionTile(
+                      icon: Icons.archive_outlined,
+                      title: 'Archived Tasks',
+                      onTap: () {},
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                _buildSection(
+                  title: 'Support',
+                  children: [
+                    _buildOptionTile(
+                      icon: Icons.help_outline,
+                      title: 'Help Center',
+                      onTap: () {},
+                    ),
+                    _buildOptionTile(
+                      icon: Icons.feedback_outlined,
+                      title: 'Send Feedback',
+                      onTap: () {},
+                    ),
+                    _buildOptionTile(
+                      icon: Icons.info_outline,
+                      title: 'About Komo',
+                      onTap: () {},
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 32),
+
+                // LOGOUT BUTTON
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      context.read<ProfileBloc>().add(ProfileLogoutPressed());
+                    },
+                    icon: const Icon(Icons.logout, color: AppColors.error),
+                    label: const Text(
+                      'Log Out',
+                      style: TextStyle(color: AppColors.error),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      side: const BorderSide(color: AppColors.error),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildProfileHeader(BuildContext context, ProfileState state) {
+    return Column(
+      children: [
+        // Avatar
+        Stack(
+          children: [
+            KomoAvatar(
+              name: state.name,
+              imageUrl: state.avatarUrl,
+              size: 100,
+            ),
+            Positioned(
+              bottom: 0,
+              right: 0,
+              child: GestureDetector(
+                onTap: () {
+                  // TODO: Image picker
+                  context.read<ProfileBloc>().add(ProfileAvatarChanged(null));
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                  child: const Icon(
+                    Icons.camera_alt,
+                    size: 16,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        // Name
+        Text(
+          state.name,
+          style: const TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 4),
+        // Role
+        Text(
+          state.role,
+          style: const TextStyle(
+            fontSize: 14,
+            color: AppColors.textSecondary,
+          ),
+        ),
+        const SizedBox(height: 8),
+        // Email
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.email_outlined,
+              size: 14,
+              color: AppColors.textHint,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              state.email,
+              style: TextStyle(
+                fontSize: 13,
+                color: AppColors.textHint,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatsRow(ProfileState state) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _buildStatItem('${state.tasksDone}', 'Tasks Done'),
+          _buildDivider(),
+          _buildStatItem('${state.projectsCount}', 'Projects'),
+          _buildDivider(),
+          _buildStatItem('${state.onTimePercentage}%', 'On Time'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatItem(String value, String label) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: AppColors.primary,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            color: AppColors.textSecondary,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDivider() {
+    return Container(
+      height: 40,
+      width: 1,
+      color: AppColors.textHint.withOpacity(0.2),
+    );
+  }
+
+  Widget _buildSection({
+    required String title,
+    required List<Widget> children,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textSecondary,
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(children: children),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildOptionTile({
+    required IconData icon,
+    required String title,
+    String? subtitle,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, size: 20, color: AppColors.primary),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    if (subtitle != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right,
+                color: AppColors.textHint,
+                size: 20,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

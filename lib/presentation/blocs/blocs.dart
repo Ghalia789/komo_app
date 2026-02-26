@@ -7,3 +7,8 @@ export 'invite_project/invite_project_bloc_exports.dart';
 export 'task_details/task_details_bloc_exports.dart';
 export 'create_project/create_project_bloc_exports.dart';
 export 'create_task/create_task_bloc_exports.dart';
+export 'kanban/kanban_bloc_exports.dart';
+export 'profile/profile_bloc_exports.dart';
+export 'settings/settings_bloc_exports.dart';
+export 'notifications/notifications_bloc_exports.dart';
+

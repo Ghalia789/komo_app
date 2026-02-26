@@ -10,7 +10,10 @@ import 'presentation/pages/dashboard_page.dart';
 import 'presentation/pages/invite_project_page.dart';
 import 'presentation/pages/kanban_page.dart';
 import 'presentation/pages/login_page.dart';
+import 'presentation/pages/notifications_page.dart';
 import 'presentation/pages/onboarding_page.dart';
+import 'presentation/pages/profile_page.dart';
+import 'presentation/pages/settings_page.dart';
 import 'presentation/pages/signup_page.dart';
 import 'presentation/pages/splash_page.dart';
 import 'presentation/pages/style_project_page.dart';
@@ -39,6 +42,9 @@ class KomoApp extends StatelessWidget {
         '/invite-project': (context) => const InviteProjectPage(),
         '/create-project': (context) => const CreateProjectPage(),
         '/create-task': (context) => const CreateTaskPage(),
+        '/profile': (context) => const ProfilePage(),
+        '/settings': (context) => const SettingsPage(),
+        '/notifications': (context) => const NotificationsPage(),
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/kanban') {

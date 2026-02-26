@@ -125,7 +125,20 @@ class DashboardView extends StatelessWidget {
       bottomNavigationBar: KomoBottomNav(
         currentIndex: 0,
         onTap: (index) {
-          // Handle navigation
+          switch (index) {
+            case 0:
+              // Already on dashboard
+              break;
+            case 1:
+              Navigator.of(context).pushNamed('/notifications');
+              break;
+            case 2:
+              Navigator.of(context).pushNamed('/profile');
+              break;
+            case 3:
+              Navigator.of(context).pushNamed('/settings');
+              break;
+          }
         },
         onFabPressed: () {
           context.read<DashboardBloc>().add(DashboardCreateProjectPressed());
