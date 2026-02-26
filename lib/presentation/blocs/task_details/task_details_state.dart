@@ -8,6 +8,7 @@ class TaskDetailsState {
   final List<CommentModel> comments;
   final String? selectedAssigneeId;
   final String? selectedAssigneeName;
+  final List<String>? selectedTags;
   final bool isLoading;
   final String? errorMessage;
 
@@ -17,6 +18,7 @@ class TaskDetailsState {
     this.comments = const [],
     this.selectedAssigneeId,
     this.selectedAssigneeName,
+    this.selectedTags,
     this.isLoading = false,
     this.errorMessage,
   });
@@ -24,6 +26,9 @@ class TaskDetailsState {
   // Effective assignee (selected or from task)
   String? get currentAssigneeId => selectedAssigneeId ?? task?.assigneeId;
   String? get currentAssigneeName => selectedAssigneeName ?? task?.assigneeName;
+
+  // Effective tags (selected or from task)
+  List<String> get currentTags => selectedTags ?? task?.tags ?? [];
 
   int get completedSubtasks => subtasks.where((s) => s.isCompleted).length;
   int get totalSubtasks => subtasks.length;
@@ -35,6 +40,7 @@ class TaskDetailsState {
     List<CommentModel>? comments,
     String? selectedAssigneeId,
     String? selectedAssigneeName,
+    List<String>? selectedTags,
     bool? isLoading,
     String? errorMessage,
   }) {
@@ -44,6 +50,7 @@ class TaskDetailsState {
       comments: comments ?? this.comments,
       selectedAssigneeId: selectedAssigneeId ?? this.selectedAssigneeId,
       selectedAssigneeName: selectedAssigneeName ?? this.selectedAssigneeName,
+      selectedTags: selectedTags ?? this.selectedTags,
       isLoading: isLoading ?? this.isLoading,
       errorMessage: errorMessage ?? this.errorMessage,
     );

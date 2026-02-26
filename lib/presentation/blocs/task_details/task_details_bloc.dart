@@ -12,6 +12,7 @@ class TaskDetailsBloc extends Bloc<TaskDetailsEvent, TaskDetailsState> {
     on<TaskDetailsSubtaskAdded>(_onSubtaskAdded);
     on<TaskDetailsSubtaskRemoved>(_onSubtaskRemoved);
     on<TaskDetailsAssigneeChanged>(_onAssigneeChanged);
+    on<TaskDetailsTagToggled>(_onTagToggled);
     on<TaskDetailsCommentAdded>(_onCommentAdded);
     on<TaskDetailsInvitePressed>(_onInvitePressed);
   }
@@ -90,6 +91,19 @@ class TaskDetailsBloc extends Bloc<TaskDetailsEvent, TaskDetailsState> {
       selectedAssigneeId: event.assigneeId,
       selectedAssigneeName: event.assigneeName,
     ));
+  }
+
+  void _onTagToggled(
+    TaskDetailsTagToggled event,
+    Emitter<TaskDetailsState> emit,
+  ) {
+    final currentTags = List<String>.from(state.currentTags);
+    if (currentTags.contains(event.tag)) {
+      currentTags.remove(event.tag);
+    } else {
+      currentTags.add(event.tag);
+    }
+    emit(state.copyWith(selectedTags: currentTags));
   }
 
   void _onCommentAdded(

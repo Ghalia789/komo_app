@@ -26,6 +26,11 @@ class TaskDetailsAssigneeChanged extends TaskDetailsEvent {
   TaskDetailsAssigneeChanged(this.assigneeId, this.assigneeName);
 }
 
+class TaskDetailsTagToggled extends TaskDetailsEvent {
+  final String tag;
+  TaskDetailsTagToggled(this.tag);
+}
+
 class TaskDetailsCommentAdded extends TaskDetailsEvent {
   final String text;
   TaskDetailsCommentAdded(this.text);

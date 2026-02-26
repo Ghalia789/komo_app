@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/theme/app_colors.dart';
-import '../blocs/create_project/create_project_bloc.dart';
-import '../blocs/create_project/create_project_event.dart';
-import '../blocs/create_project/create_project_state.dart';
+import '../blocs/blocs.dart';
 import '../widgets/widgets.dart';
 
 /// Step 2: Pick a color palette for the project

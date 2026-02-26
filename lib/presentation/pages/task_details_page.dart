@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/theme/app_colors.dart';
-import '../blocs/task_details/task_details_bloc_exports.dart';
-import '../blocs/create_task/create_task_state.dart';
+import '../blocs/blocs.dart';
 import '../widgets/widgets.dart';
 
 class TaskDetailsPage extends StatelessWidget {
@@ -297,18 +296,17 @@ class _TaskDetailsViewState extends State<TaskDetailsView> {
                       const SizedBox(height: 16),
 
                       // TAGS with KomoChipSelector
-                      if (task.tags.isNotEmpty)
-                        KomoChipSelector<String>(
-                          label: 'Tags',
-                          options: CreateTaskState.availableTags,
-                          selected: task.tags,
-                          colorForOption: (tag) =>
-                              const CreateTaskState().getTagColor(tag),
-                          labelForOption: (tag) => tag,
-                          onToggle: (_) {
-                            // Read-only in details view
-                          },
-                        ),
+                      KomoChipSelector<String>(
+                        label: '🏷️ Tags',
+                        options: CreateTaskState.availableTags,
+                        selected: task.tags,
+                        colorForOption: (tag) =>
+                            const CreateTaskState().getTagColor(tag),
+                        labelForOption: (tag) => tag,
+                        onToggle: (_) {
+                          // Read-only in details view
+                        },
+                      ),
                       const SizedBox(height: 24),
 
                       // SUBTASKS SECTION
