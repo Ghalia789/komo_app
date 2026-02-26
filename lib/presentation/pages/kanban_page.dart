@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/models/project_model.dart';
 import '../blocs/kanban/kanban_bloc_exports.dart';
-import '../widgets/cards/task_card.dart';
 import '../widgets/widgets.dart';
 
 class KanbanPage extends StatelessWidget {
@@ -54,7 +53,7 @@ class KanbanView extends StatelessWidget {
             padding: const EdgeInsets.only(right: 12),
             child: TextButton(
               onPressed: () {
-                context.read<KanbanBloc>().add(KanbanInvitePressed());
+                Navigator.of(context).pushNamed('/invite-project');
               },
               style: TextButton.styleFrom(
                 backgroundColor: AppColors.primary.withOpacity(0.1),
@@ -178,6 +177,7 @@ class KanbanView extends StatelessWidget {
         },
         onFabPressed: () {
           // Create new task
+          Navigator.of(context).pushNamed('/create-task');
         },
       ),
     );
