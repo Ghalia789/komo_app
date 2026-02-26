@@ -3,24 +3,28 @@ import 'package:flutter/material.dart';
 class TaskModel {
   final String id;
   final String title;
+  final String? description;
   final String columnId; // 'todo', 'in_progress', 'done'
   final List<String> tags; // ['Design', 'Urgent', 'Research', etc.]
   final int totalSubtasks;
   final int completedSubtasks;
   final int commentCount;
   final String? assigneeName; // Person assigned to this task
+  final String? assigneeId;
   final String? assigneePhotoUrl; // Avatar URL
   final Color leftBorderColor; // Left accent color
 
   TaskModel({
     required this.id,
     required this.title,
+    this.description,
     required this.columnId,
     required this.tags,
     required this.totalSubtasks,
     required this.completedSubtasks,
     required this.commentCount,
     this.assigneeName,
+    this.assigneeId,
     this.assigneePhotoUrl,
     required this.leftBorderColor,
   });
@@ -38,30 +42,35 @@ class TaskModel {
       TaskModel(
         id: '1',
         title: 'Design homepage',
+        description: 'Create a modern, responsive homepage design following the new brand guidelines. Include hero section, features grid, and testimonials.',
         columnId: 'todo',
         tags: ['Design', 'Urgent'],
         totalSubtasks: 15,
         completedSubtasks: 0,
         commentCount: 3,
         assigneeName: 'Sarah Chen',
+        assigneeId: '1',
         assigneePhotoUrl: null,
         leftBorderColor: const Color(0xFF9600BF),
       ),
       TaskModel(
         id: '2',
         title: 'Create wireframes',
+        description: 'Low-fidelity wireframes for the main user flows including onboarding, dashboard, and settings screens.',
         columnId: 'todo',
         tags: ['Research'],
         totalSubtasks: 8,
         completedSubtasks: 0,
         commentCount: 3,
         assigneeName: 'Mike Johnson',
+        assigneeId: '2',
         assigneePhotoUrl: null,
         leftBorderColor: const Color(0xFF4F9BD8),
       ),
       TaskModel(
         id: '3',
         title: 'User testing plan',
+        description: 'Prepare user testing protocol and recruit 5-10 participants for usability testing next week.',
         columnId: 'todo',
         tags: ['Planning'],
         totalSubtasks: 0,
