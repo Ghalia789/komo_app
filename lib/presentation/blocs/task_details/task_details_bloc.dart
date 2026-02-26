@@ -9,6 +9,9 @@ class TaskDetailsBloc extends Bloc<TaskDetailsEvent, TaskDetailsState> {
   TaskDetailsBloc() : super(TaskDetailsState()) {
     on<TaskDetailsLoadData>(_onLoadData);
     on<TaskDetailsSubtaskToggled>(_onSubtaskToggled);
+    on<TaskDetailsSubtaskAdded>(_onSubtaskAdded);
+    on<TaskDetailsSubtaskRemoved>(_onSubtaskRemoved);
+    on<TaskDetailsAssigneeChanged>(_onAssigneeChanged);
     on<TaskDetailsCommentAdded>(_onCommentAdded);
     on<TaskDetailsInvitePressed>(_onInvitePressed);
   }
@@ -48,6 +51,45 @@ class TaskDetailsBloc extends Bloc<TaskDetailsEvent, TaskDetailsState> {
     }).toList();
 
     emit(state.copyWith(subtasks: updatedSubtasks));
+  }
+
+  void _onSubtaskAdded(
+    TaskDetailsSubtaskAdded event,
+    Emitter<TaskDetailsState> emit,
+  ) {
+    if (event.title.trim().isEmpty) return;
+    
+    final newSubtask = SubtaskModel(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      title: event.title.trim(),
+      isCompleted: false,
+    );
+    
+    final updatedSubtasks = [...state.subtasks, newSubtask];
+    emit(state.copyWith(subtasks: updatedSubtasks));
+  }
+
+  void _onSubtaskRemoved(
+    TaskDetailsSubtaskRemoved event,
+    Emitter<TaskDetailsState> emit,
+  ) {
+    final updatedSubtasks = state.subtasks
+        .where((s) => s.id != event.subtaskId)
+        .toList();
+    emit(state.copyWith(subtasks: updatedSubtasks));
+  }
+
+  void _onAssigneeChanged(
+    TaskDetailsAssigneeChanged event,
+    Emitter<TaskDetailsState> emit,
+  ) {
+    if (state.task == null) return;
+    // In a real app, this would update the backend
+    // For now we just update local state
+    emit(state.copyWith(
+      selectedAssigneeId: event.assigneeId,
+      selectedAssigneeName: event.assigneeName,
+    ));
   }
 
   void _onCommentAdded(

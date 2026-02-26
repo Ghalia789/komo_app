@@ -5,11 +5,13 @@ import '../../../data/models/subtask_model.dart';
 class SubtaskItem extends StatelessWidget {
   final SubtaskModel subtask;
   final ValueChanged<bool?>? onChanged;
+  final VoidCallback? onDelete;
 
   const SubtaskItem({
     super.key,
     required this.subtask,
     this.onChanged,
+    this.onDelete,
   });
 
   @override
@@ -56,6 +58,17 @@ class SubtaskItem extends StatelessWidget {
               ),
             ),
           ),
+
+          // Delete button
+          if (onDelete != null)
+            GestureDetector(
+              onTap: onDelete,
+              child: Icon(
+                Icons.close,
+                size: 18,
+                color: AppColors.textHint,
+              ),
+            ),
         ],
       ),
     );
