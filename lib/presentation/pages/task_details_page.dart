@@ -33,6 +33,7 @@ class _TaskDetailsViewState extends State<TaskDetailsView> {
   final TextEditingController _commentController = TextEditingController();
   final TextEditingController _subtaskController = TextEditingController();
   bool _isAddingSubtask = false;
+  bool _isChangingAssignee = false;
 
   @override
   void dispose() {
@@ -120,22 +121,148 @@ class _TaskDetailsViewState extends State<TaskDetailsView> {
                         const SizedBox(height: 20),
                       ],
 
-                      // ASSIGNEE SELECTOR
-                      AssigneeSelector(
-                        assignees: Assignee.mockAssignees,
-                        selectedIds: state.currentAssigneeId != null
-                            ? [state.currentAssigneeId!]
-                            : [],
-                        onToggle: (id) {
-                          final assignee = Assignee.mockAssignees
-                              .firstWhere((a) => a.id == id);
-                          context.read<TaskDetailsBloc>().add(
-                                TaskDetailsAssigneeChanged(
-                                  id,
-                                  assignee.name,
+                      // ASSIGNEE SECTION
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.people_outline,
+                                size: 18,
+                                color: AppColors.textSecondary,
+                              ),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'Assigned to',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: AppColors.textSecondary,
                                 ),
-                              );
-                        },
+                              ),
+                              const Spacer(),
+                              GestureDetector(
+                                onTap: () => setState(() {
+                                  _isChangingAssignee = !_isChangingAssignee;
+                                }),
+                                child: Text(
+                                  _isChangingAssignee ? 'Done' : 'Change',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          // Current assignee display
+                          if (!_isChangingAssignee) ...[
+                            if (state.currentAssigneeName != null)
+                              Row(
+                                children: [
+                                  KomoAvatar(
+                                    name: state.currentAssigneeName!,
+                                    size: 36,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    state.currentAssigneeName!,
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            else
+                              Text(
+                                'No assignee',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: AppColors.textHint,
+                                ),
+                              ),
+                          ] else
+                            // Assignee selector when changing
+                            Wrap(
+                              spacing: 12,
+                              runSpacing: 12,
+                              children: Assignee.mockAssignees.map((assignee) {
+                                final isSelected =
+                                    state.currentAssigneeId == assignee.id;
+                                return GestureDetector(
+                                  onTap: () {
+                                    context.read<TaskDetailsBloc>().add(
+                                          TaskDetailsAssigneeChanged(
+                                            assignee.id,
+                                            assignee.name,
+                                          ),
+                                        );
+                                    setState(
+                                        () => _isChangingAssignee = false);
+                                  },
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 200),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: isSelected
+                                          ? assignee.color.withOpacity(0.15)
+                                          : AppColors.surface,
+                                      borderRadius: BorderRadius.circular(24),
+                                      border: Border.all(
+                                        color: isSelected
+                                            ? assignee.color
+                                            : AppColors.textHint
+                                                .withOpacity(0.3),
+                                        width: isSelected ? 2 : 1,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Container(
+                                          width: 28,
+                                          height: 28,
+                                          decoration: BoxDecoration(
+                                            color: assignee.color,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Center(
+                                            child: Text(
+                                              assignee.initials,
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          assignee.name,
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: isSelected
+                                                ? FontWeight.w600
+                                                : FontWeight.w500,
+                                            color: isSelected
+                                                ? assignee.color
+                                                : AppColors.textPrimary,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                        ],
                       ),
                       const SizedBox(height: 20),
 
