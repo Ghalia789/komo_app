@@ -1,3 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+import '../../domain/entities/subtask.dart';
+
 class SubtaskModel {
   final String id;
   final String taskId; // Link to parent task
@@ -8,7 +12,7 @@ class SubtaskModel {
   final DateTime createdAt;
   final DateTime? updatedAt;
 
-  SubtaskModel({
+  const SubtaskModel({
     required this.id,
     required this.taskId,
     required this.title,
@@ -18,6 +22,50 @@ class SubtaskModel {
     required this.createdAt,
     this.updatedAt,
   });
+
+  factory SubtaskModel.fromDomain(Subtask subtask) => SubtaskModel(
+        id: subtask.id,
+        taskId: subtask.taskId,
+        title: subtask.title,
+        isCompleted: subtask.isCompleted,
+        dueDate: subtask.dueDate,
+        order: subtask.order,
+        createdAt: subtask.createdAt,
+        updatedAt: subtask.updatedAt,
+      );
+
+  Subtask toDomain() => Subtask(
+        id: id,
+        taskId: taskId,
+        title: title,
+        isCompleted: isCompleted,
+        dueDate: dueDate,
+        order: order,
+        createdAt: createdAt,
+        updatedAt: updatedAt,
+      );
+
+  factory SubtaskModel.fromJson(Map<String, dynamic> json) => SubtaskModel(
+        id: json['id'] as String? ?? '',
+        taskId: json['taskId'] as String? ?? '',
+        title: json['title'] as String? ?? '',
+        isCompleted: json['isCompleted'] as bool? ?? false,
+        dueDate: _fromTimestamp(json['dueDate']),
+        order: json['order'] as int? ?? 0,
+        createdAt: _fromTimestamp(json['createdAt']) ?? DateTime.now(),
+        updatedAt: _fromTimestamp(json['updatedAt']),
+      );
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'taskId': taskId,
+        'title': title,
+        'isCompleted': isCompleted,
+        'dueDate': dueDate,
+        'order': order,
+        'createdAt': createdAt,
+        'updatedAt': updatedAt,
+      };
 
   bool get isOverdue => dueDate != null && !isCompleted && DateTime.now().isAfter(dueDate!);
 
@@ -144,4 +192,11 @@ class SubtaskModel {
       ),
     ];
   }
+}
+
+DateTime? _fromTimestamp(dynamic value) {
+  if (value == null) return null;
+  if (value is DateTime) return value;
+  if (value is Timestamp) return value.toDate();
+  return null;
 }

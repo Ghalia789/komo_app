@@ -1,4 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+
+import '../../domain/entities/project.dart';
 
 class ProjectModel {
   final String id;
@@ -10,6 +13,7 @@ class ProjectModel {
   final List<String> memberIds; // User IDs of team members
   final List<String> memberAvatars;
   final String color; // 'purple', 'ocean', 'sunset', 'mono'
+  final String? icon;
   final DateTime? dueDate;
   final DateTime? startDate;
   final DateTime createdAt;
@@ -20,16 +24,91 @@ class ProjectModel {
     required this.name,
     required this.description,
     required this.ownerId,
-    required this.taskCount,
-    required this.completedTasks,
-    required this.memberIds,
-    required this.memberAvatars,
+    this.taskCount = 0,
+    this.completedTasks = 0,
+    this.memberIds = const [],
+    this.memberAvatars = const [],
     required this.color,
+    this.icon,
     this.dueDate,
     this.startDate,
     required this.createdAt,
     this.updatedAt,
   });
+
+  factory ProjectModel.fromDomain(Project project) => ProjectModel(
+        id: project.id,
+        name: project.name,
+        description: project.description,
+        ownerId: project.ownerId,
+        taskCount: project.taskCount,
+        completedTasks: project.completedTasks,
+        memberIds: project.memberIds,
+        memberAvatars: project.memberAvatars,
+        color: project.color,
+        icon: project.icon,
+        dueDate: project.dueDate,
+        startDate: project.startDate,
+        createdAt: project.createdAt,
+        updatedAt: project.updatedAt,
+      );
+
+  Project toDomain() => Project(
+        id: id,
+        name: name,
+        description: description,
+        ownerId: ownerId,
+        taskCount: taskCount,
+        completedTasks: completedTasks,
+        memberIds: memberIds,
+        memberAvatars: memberAvatars,
+        color: color,
+        icon: icon,
+        dueDate: dueDate,
+        startDate: startDate,
+        createdAt: createdAt,
+        updatedAt: updatedAt,
+      );
+
+  factory ProjectModel.fromJson(Map<String, dynamic> json) => ProjectModel(
+        id: json['id'] as String? ?? '',
+        name: json['name'] as String? ?? '',
+        description: json['description'] as String? ?? '',
+        ownerId: json['ownerId'] as String? ?? '',
+        taskCount: json['taskCount'] as int? ?? 0,
+        completedTasks: json['completedTasks'] as int? ?? 0,
+        memberIds: (json['memberIds'] as List<dynamic>?)
+                ?.map((e) => e.toString())
+                .toList() ??
+            const [],
+        memberAvatars: (json['memberAvatars'] as List<dynamic>?)
+                ?.map((e) => e.toString())
+                .toList() ??
+            const [],
+        color: json['color'] as String? ?? 'purple',
+        icon: json['icon'] as String?,
+        dueDate: _fromTimestamp(json['dueDate']),
+        startDate: _fromTimestamp(json['startDate']),
+        createdAt: _fromTimestamp(json['createdAt']) ?? DateTime.now(),
+        updatedAt: _fromTimestamp(json['updatedAt']),
+      );
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'description': description,
+        'ownerId': ownerId,
+        'taskCount': taskCount,
+        'completedTasks': completedTasks,
+        'memberIds': memberIds,
+        'memberAvatars': memberAvatars,
+        'color': color,
+        'icon': icon,
+        'dueDate': dueDate,
+        'startDate': startDate,
+        'createdAt': createdAt,
+        'updatedAt': updatedAt,
+      };
 
   bool get isOverdue => dueDate != null && DateTime.now().isAfter(dueDate!);
 
@@ -114,4 +193,11 @@ class ProjectModel {
         return const Color(0xFF9600BF);
     }
   }
+}
+
+DateTime? _fromTimestamp(dynamic value) {
+  if (value == null) return null;
+  if (value is DateTime) return value;
+  if (value is Timestamp) return value.toDate();
+  return null;
 }

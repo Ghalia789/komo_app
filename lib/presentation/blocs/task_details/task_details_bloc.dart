@@ -117,6 +117,8 @@ class TaskDetailsBloc extends Bloc<TaskDetailsEvent, TaskDetailsState> {
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       authorName: 'You', // TODO: Get from current user
       authorPhotoUrl: null,
+      authorId: 'currentUserId',//TODO: Get from current user
+      taskId: state.task?.id ?? '', //TODO: Handle null case
       text: event.text,
       createdAt: DateTime.now(),
     );
