@@ -62,8 +62,11 @@ class TaskDetailsBloc extends Bloc<TaskDetailsEvent, TaskDetailsState> {
     
     final newSubtask = SubtaskModel(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
+      taskId: state.task?.id ?? '',
       title: event.title.trim(),
       isCompleted: false,
+      order: state.subtasks.length + 1,
+      createdAt: DateTime.now(),
     );
     
     final updatedSubtasks = [...state.subtasks, newSubtask];

@@ -122,6 +122,37 @@ class _CreateTaskViewState extends State<CreateTaskView> {
 
                       const SizedBox(height: 24),
 
+                      // Due Date & Start Date Section
+                      Row(
+                        children: [
+                          Expanded(
+                            child: KomoDatePicker(
+                              label: '📅 Due Date',
+                              selectedDate: state.dueDate,
+                              onDateSelected: (date) {
+                                context
+                                    .read<CreateTaskBloc>()
+                                    .add(CreateTaskDueDateChanged(date));
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: KomoDatePicker(
+                              label: '🏁 Start Date',
+                              selectedDate: state.startDate,
+                              onDateSelected: (date) {
+                                context
+                                    .read<CreateTaskBloc>()
+                                    .add(CreateTaskStartDateChanged(date));
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 24),
+
                       // Priority Section - using KomoChipSelector
                       KomoChipSelector<String>(
                         label: '🚩 Priority',

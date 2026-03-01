@@ -167,7 +167,7 @@ class ProjectCard extends StatelessWidget {
       onTap: onTap,
       padding: const EdgeInsets.all(16),
       child: SizedBox(
-        height: 100,
+        height: 110,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.center,
@@ -184,13 +184,15 @@ class ProjectCard extends StatelessWidget {
             const SizedBox(height: 4),
             // Subtitle
             Text(
-              project.description,
+              project.summaryDescription,
               style: const TextStyle(
                 fontSize: 12,
                 color: AppColors.textSecondary,
               ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 16),
+            const Spacer(),
             
             // PROGRESS BAR + AVATARS
             Row(

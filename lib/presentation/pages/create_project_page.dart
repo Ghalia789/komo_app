@@ -223,6 +223,37 @@ class _CreateProjectViewState extends State<CreateProjectView> {
 
                       const SizedBox(height: 24),
 
+                      // Due Date & Start Date Section
+                      Row(
+                        children: [
+                          Expanded(
+                            child: KomoDatePicker(
+                              label: '📅 Due Date',
+                              selectedDate: state.dueDate,
+                              onDateSelected: (date) {
+                                context
+                                    .read<CreateProjectBloc>()
+                                    .add(CreateProjectDueDateChanged(date));
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: KomoDatePicker(
+                              label: '🏁 Start Date',
+                              selectedDate: state.startDate,
+                              onDateSelected: (date) {
+                                context
+                                    .read<CreateProjectBloc>()
+                                    .add(CreateProjectStartDateChanged(date));
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 24),
+
                       // Icon Picker
                       IconPicker(
                         icons: CreateProjectState.availableIcons,
