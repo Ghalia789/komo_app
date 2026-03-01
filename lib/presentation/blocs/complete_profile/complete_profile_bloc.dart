@@ -34,14 +34,14 @@ class CompleteProfileBloc extends Bloc<CompleteProfileEvent, CompleteProfileStat
   }
 
   void _onAvatarChanged(CompleteProfileAvatarChanged event, Emitter<CompleteProfileState> emit) {
-    emit(state.copyWith(avatarPath: event.imagePath));
+    emit(state.copyWith(avatarPath: () => event.imagePath));
   }
 
   Future<void> _onSubmitted(CompleteProfileSubmitted event, Emitter<CompleteProfileState> emit) async {
     final nameError = Validators.required(state.name, fieldName: 'Full Name');
     
     if (nameError != null) {
-      emit(state.copyWith(nameError: nameError));
+      emit(state.copyWith(nameError: () => nameError));
       return;
     }
 

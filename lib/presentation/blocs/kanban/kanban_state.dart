@@ -1,14 +1,16 @@
+import 'package:equatable/equatable.dart';
+
 import '../../../data/models/kanban_column_model.dart';
 import '../../../data/models/task_model.dart';
 
-class KanbanState {
+class KanbanState extends Equatable {
   final List<KanbanColumnModel> columns;
   final List<TaskModel> tasks;
   final bool isBoardView; // true = Board, false = List
   final bool isLoading;
   final String? errorMessage;
 
-  KanbanState({
+  const KanbanState({
     this.columns = const [],
     this.tasks = const [],
     this.isBoardView = true,
@@ -26,14 +28,17 @@ class KanbanState {
     List<TaskModel>? tasks,
     bool? isBoardView,
     bool? isLoading,
-    String? errorMessage,
+    String? Function()? errorMessage,
   }) {
     return KanbanState(
       columns: columns ?? this.columns,
       tasks: tasks ?? this.tasks,
       isBoardView: isBoardView ?? this.isBoardView,
       isLoading: isLoading ?? this.isLoading,
-      errorMessage: errorMessage ?? this.errorMessage,
+      errorMessage: errorMessage != null ? errorMessage() : this.errorMessage,
     );
   }
+
+  @override
+  List<Object?> get props => [columns, tasks, isBoardView, isLoading, errorMessage];
 }

@@ -1,3 +1,4 @@
+import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 
@@ -10,7 +11,7 @@ enum NotificationType {
   projectInvite,
 }
 
-class NotificationItem {
+class NotificationItem extends Equatable {
   final String id;
   final String title;
   final String message;
@@ -83,6 +84,9 @@ class NotificationItem {
     );
   }
 
+  @override
+  List<Object?> get props => [id, title, message, type, createdAt, isRead];
+
   static List<NotificationItem> getMockData() {
     final now = DateTime.now();
     return [
@@ -138,7 +142,7 @@ class NotificationItem {
   }
 }
 
-class NotificationsState {
+class NotificationsState extends Equatable {
   final List<NotificationItem> notifications;
   final bool isLoading;
   final String? errorMessage;
@@ -154,12 +158,15 @@ class NotificationsState {
   NotificationsState copyWith({
     List<NotificationItem>? notifications,
     bool? isLoading,
-    String? errorMessage,
+    String? Function()? errorMessage,
   }) {
     return NotificationsState(
       notifications: notifications ?? this.notifications,
       isLoading: isLoading ?? this.isLoading,
-      errorMessage: errorMessage,
+      errorMessage: errorMessage != null ? errorMessage() : this.errorMessage,
     );
   }
+
+  @override
+  List<Object?> get props => [notifications, isLoading, errorMessage];
 }

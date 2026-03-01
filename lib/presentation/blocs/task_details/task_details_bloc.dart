@@ -91,8 +91,8 @@ class TaskDetailsBloc extends Bloc<TaskDetailsEvent, TaskDetailsState> {
     // In a real app, this would update the backend
     // For now we just update local state
     emit(state.copyWith(
-      selectedAssigneeId: event.assigneeId,
-      selectedAssigneeName: event.assigneeName,
+      selectedAssigneeId: () => event.assigneeId,
+      selectedAssigneeName: () => event.assigneeName,
     ));
   }
 
@@ -106,7 +106,7 @@ class TaskDetailsBloc extends Bloc<TaskDetailsEvent, TaskDetailsState> {
     } else {
       currentTags.add(event.tag);
     }
-    emit(state.copyWith(selectedTags: currentTags));
+    emit(state.copyWith(selectedTags: () => currentTags));
   }
 
   void _onCommentAdded(

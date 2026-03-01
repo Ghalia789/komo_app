@@ -36,8 +36,8 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
     // Show errors if any
     if (emailError != null || passwordError != null) {
       emit(state.copyWith(
-        emailError: emailError,
-        passwordError: passwordError,
+        emailError: () => emailError,
+        passwordError: () => passwordError,
       ));
       return;  // Stop, don't login
     }

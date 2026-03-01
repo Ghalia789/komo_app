@@ -11,6 +11,8 @@ class CreateTaskBloc extends Bloc<CreateTaskEvent, CreateTaskState> {
     on<CreateTaskAssigneeToggled>(_onAssigneeToggled);
     on<CreateTaskAddSubtask>(_onAddSubtask);
     on<CreateTaskRemoveSubtask>(_onRemoveSubtask);
+    on<CreateTaskDueDateChanged>(_onDueDateChanged);
+    on<CreateTaskStartDateChanged>(_onStartDateChanged);
     on<CreateTaskSubmitted>(_onSubmitted);
     on<CreateTaskReset>(_onReset);
   }
@@ -80,6 +82,20 @@ class CreateTaskBloc extends Bloc<CreateTaskEvent, CreateTaskState> {
   ) {
     final subtasks = List<String>.from(state.subtasks)..removeAt(event.index);
     emit(state.copyWith(subtasks: subtasks));
+  }
+
+  void _onDueDateChanged(
+    CreateTaskDueDateChanged event,
+    Emitter<CreateTaskState> emit,
+  ) {
+    emit(state.copyWith(dueDate: () => event.dueDate));
+  }
+
+  void _onStartDateChanged(
+    CreateTaskStartDateChanged event,
+    Emitter<CreateTaskState> emit,
+  ) {
+    emit(state.copyWith(startDate: () => event.startDate));
   }
 
   Future<void> _onSubmitted(

@@ -1,6 +1,7 @@
+import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 
-class Assignee {
+class Assignee extends Equatable {
   final String id;
   final String name;
   final Color color;
@@ -23,12 +24,17 @@ class Assignee {
     Assignee(id: '2', name: 'Mike Johnson', color: Color(0xFF9600BF)),
     Assignee(id: '3', name: 'Emma Davis', color: Color(0xFF268060)),
   ];
+
+  @override
+  List<Object?> get props => [id, name, color];
 }
 
-class CreateTaskState {
+class CreateTaskState extends Equatable {
   final String title;
   final String description;
   final String priority; // 'low', 'medium', 'high', 'urgent'
+  final DateTime? dueDate;
+  final DateTime? startDate;
   final List<String> selectedTags;
   final List<String> selectedAssigneeIds;
   final List<String> subtasks;
@@ -51,6 +57,8 @@ class CreateTaskState {
     this.title = '',
     this.description = '',
     this.priority = 'Medium',
+    this.dueDate,
+    this.startDate,
     this.selectedTags = const [],
     this.selectedAssigneeIds = const [],
     this.subtasks = const [],
@@ -99,6 +107,8 @@ class CreateTaskState {
     String? title,
     String? description,
     String? priority,
+    DateTime? Function()? dueDate,
+    DateTime? Function()? startDate,
     List<String>? selectedTags,
     List<String>? selectedAssigneeIds,
     List<String>? subtasks,
@@ -110,6 +120,8 @@ class CreateTaskState {
       title: title ?? this.title,
       description: description ?? this.description,
       priority: priority ?? this.priority,
+      dueDate: dueDate != null ? dueDate() : this.dueDate,
+      startDate: startDate != null ? startDate() : this.startDate,
       selectedTags: selectedTags ?? this.selectedTags,
       selectedAssigneeIds: selectedAssigneeIds ?? this.selectedAssigneeIds,
       subtasks: subtasks ?? this.subtasks,
@@ -118,4 +130,19 @@ class CreateTaskState {
       errorMessage: errorMessage != null ? errorMessage() : this.errorMessage,
     );
   }
+
+  @override
+  List<Object?> get props => [
+        title,
+        description,
+        priority,
+        dueDate,
+        startDate,
+        selectedTags,
+        selectedAssigneeIds,
+        subtasks,
+        isLoading,
+        isSuccess,
+        errorMessage,
+      ];
 }

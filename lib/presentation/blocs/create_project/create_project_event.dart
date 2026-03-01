@@ -20,6 +20,16 @@ class CreateProjectPaletteSelected extends CreateProjectEvent {
   CreateProjectPaletteSelected(this.paletteId);
 }
 
+class CreateProjectDueDateChanged extends CreateProjectEvent {
+  final DateTime? dueDate;
+  CreateProjectDueDateChanged(this.dueDate);
+}
+
+class CreateProjectStartDateChanged extends CreateProjectEvent {
+  final DateTime? startDate;
+  CreateProjectStartDateChanged(this.startDate);
+}
+
 class CreateProjectSubmitted extends CreateProjectEvent {}
 
 class CreateProjectReset extends CreateProjectEvent {}

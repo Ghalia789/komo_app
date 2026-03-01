@@ -35,6 +35,16 @@ class CreateTaskRemoveSubtask extends CreateTaskEvent {
   CreateTaskRemoveSubtask(this.index);
 }
 
+class CreateTaskDueDateChanged extends CreateTaskEvent {
+  final DateTime? dueDate;
+  CreateTaskDueDateChanged(this.dueDate);
+}
+
+class CreateTaskStartDateChanged extends CreateTaskEvent {
+  final DateTime? startDate;
+  CreateTaskStartDateChanged(this.startDate);
+}
+
 class CreateTaskSubmitted extends CreateTaskEvent {}
 
 class CreateTaskReset extends CreateTaskEvent {}

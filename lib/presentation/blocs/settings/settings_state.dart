@@ -1,4 +1,6 @@
-class SettingsState {
+import 'package:equatable/equatable.dart';
+
+class SettingsState extends Equatable {
   final bool pushNotifications;
   final bool emailNotifications;
   final bool taskReminders;
@@ -37,7 +39,7 @@ class SettingsState {
     int? cacheSize,
     bool? isLoading,
     bool? isClearingCache,
-    String? errorMessage,
+    String? Function()? errorMessage,
   }) {
     return SettingsState(
       pushNotifications: pushNotifications ?? this.pushNotifications,
@@ -48,7 +50,20 @@ class SettingsState {
       cacheSize: cacheSize ?? this.cacheSize,
       isLoading: isLoading ?? this.isLoading,
       isClearingCache: isClearingCache ?? this.isClearingCache,
-      errorMessage: errorMessage,
+      errorMessage: errorMessage != null ? errorMessage() : this.errorMessage,
     );
   }
+
+  @override
+  List<Object?> get props => [
+        pushNotifications,
+        emailNotifications,
+        taskReminders,
+        darkMode,
+        language,
+        cacheSize,
+        isLoading,
+        isClearingCache,
+        errorMessage,
+      ];
 }

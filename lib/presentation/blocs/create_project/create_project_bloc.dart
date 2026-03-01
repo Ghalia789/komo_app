@@ -8,6 +8,8 @@ class CreateProjectBloc extends Bloc<CreateProjectEvent, CreateProjectState> {
     on<CreateProjectDescriptionChanged>(_onDescriptionChanged);
     on<CreateProjectIconSelected>(_onIconSelected);
     on<CreateProjectPaletteSelected>(_onPaletteSelected);
+    on<CreateProjectDueDateChanged>(_onDueDateChanged);
+    on<CreateProjectStartDateChanged>(_onStartDateChanged);
     on<CreateProjectSubmitted>(_onSubmitted);
     on<CreateProjectReset>(_onReset);
   }
@@ -44,6 +46,20 @@ class CreateProjectBloc extends Bloc<CreateProjectEvent, CreateProjectState> {
     Emitter<CreateProjectState> emit,
   ) {
     emit(state.copyWith(selectedPaletteId: event.paletteId));
+  }
+
+  void _onDueDateChanged(
+    CreateProjectDueDateChanged event,
+    Emitter<CreateProjectState> emit,
+  ) {
+    emit(state.copyWith(dueDate: () => event.dueDate));
+  }
+
+  void _onStartDateChanged(
+    CreateProjectStartDateChanged event,
+    Emitter<CreateProjectState> emit,
+  ) {
+    emit(state.copyWith(startDate: () => event.startDate));
   }
 
   Future<void> _onSubmitted(

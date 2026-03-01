@@ -51,9 +51,9 @@ class SignupBloc extends Bloc<SignupEvent, SignupState> {
 
     if (emailError != null || passwordError != null || confirmError != null) {
       emit(state.copyWith(
-        emailError: emailError,
-        passwordError: passwordError,
-        confirmPasswordError: confirmError,
+        emailError: () => emailError,
+        passwordError: () => passwordError,
+        confirmPasswordError: () => confirmError,
       ));
       return;  // Stop, show errors
     }

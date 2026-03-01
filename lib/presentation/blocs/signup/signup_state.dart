@@ -1,4 +1,6 @@
-class SignupState {
+import 'package:equatable/equatable.dart';
+
+class SignupState extends Equatable {
   final String email;
   final String password;
   final String confirmPassword;
@@ -11,7 +13,7 @@ class SignupState {
   final bool isSuccess;
   final String? errorMessage;
 
-  SignupState({
+  const SignupState({
     this.email = '',
     this.password = '',
     this.confirmPassword = '',
@@ -37,27 +39,42 @@ class SignupState {
     String? email,
     String? password,
     String? confirmPassword,
-    String? emailError,
-    String? passwordError,
-    String? confirmPasswordError,
+    String? Function()? emailError,
+    String? Function()? passwordError,
+    String? Function()? confirmPasswordError,
     bool? isPasswordVisible,
     bool? isConfirmPasswordVisible,
     bool? isLoading,
     bool? isSuccess,
-    String? errorMessage,
+    String? Function()? errorMessage,
   }) {
     return SignupState(
       email: email ?? this.email,
       password: password ?? this.password,
       confirmPassword: confirmPassword ?? this.confirmPassword,
-      emailError: emailError ?? this.emailError,
-      passwordError: passwordError ?? this.passwordError,
-      confirmPasswordError: confirmPasswordError ?? this.confirmPasswordError,
+      emailError: emailError != null ? emailError() : this.emailError,
+      passwordError: passwordError != null ? passwordError() : this.passwordError,
+      confirmPasswordError: confirmPasswordError != null ? confirmPasswordError() : this.confirmPasswordError,
       isPasswordVisible: isPasswordVisible ?? this.isPasswordVisible,
       isConfirmPasswordVisible: isConfirmPasswordVisible ?? this.isConfirmPasswordVisible,
       isLoading: isLoading ?? this.isLoading,
       isSuccess: isSuccess ?? this.isSuccess,
-      errorMessage: errorMessage ?? this.errorMessage,
+      errorMessage: errorMessage != null ? errorMessage() : this.errorMessage,
     );
   }
+
+  @override
+  List<Object?> get props => [
+        email,
+        password,
+        confirmPassword,
+        emailError,
+        passwordError,
+        confirmPasswordError,
+        isPasswordVisible,
+        isConfirmPasswordVisible,
+        isLoading,
+        isSuccess,
+        errorMessage,
+      ];
 }

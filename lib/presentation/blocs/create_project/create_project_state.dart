@@ -1,6 +1,7 @@
+import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 
-class ColorPalette {
+class ColorPalette extends Equatable {
   final String id;
   final String name;
   final List<Color> colors;
@@ -33,13 +34,18 @@ class ColorPalette {
       colors: [Color(0xFF3E0C54), Color(0xFF7D627F), Color(0xFFC4B5C8)],
     ),
   ];
+
+  @override
+  List<Object?> get props => [id, name, colors];
 }
 
-class CreateProjectState {
+class CreateProjectState extends Equatable {
   final String name;
   final String description;
   final String selectedIcon;
   final String selectedPaletteId;
+  final DateTime? dueDate;
+  final DateTime? startDate;
   final bool isLoading;
   final bool isSuccess;
   final String? errorMessage;
@@ -55,6 +61,8 @@ class CreateProjectState {
     this.description = '',
     this.selectedIcon = '💡',
     this.selectedPaletteId = 'purple_haze',
+    this.dueDate,
+    this.startDate,
     this.isLoading = false,
     this.isSuccess = false,
     this.errorMessage,
@@ -73,6 +81,8 @@ class CreateProjectState {
     String? description,
     String? selectedIcon,
     String? selectedPaletteId,
+    DateTime? Function()? dueDate,
+    DateTime? Function()? startDate,
     bool? isLoading,
     bool? isSuccess,
     String? Function()? errorMessage,
@@ -82,9 +92,24 @@ class CreateProjectState {
       description: description ?? this.description,
       selectedIcon: selectedIcon ?? this.selectedIcon,
       selectedPaletteId: selectedPaletteId ?? this.selectedPaletteId,
+      dueDate: dueDate != null ? dueDate() : this.dueDate,
+      startDate: startDate != null ? startDate() : this.startDate,
       isLoading: isLoading ?? this.isLoading,
       isSuccess: isSuccess ?? this.isSuccess,
       errorMessage: errorMessage != null ? errorMessage() : this.errorMessage,
     );
   }
+
+  @override
+  List<Object?> get props => [
+        name,
+        description,
+        selectedIcon,
+        selectedPaletteId,
+        dueDate,
+        startDate,
+        isLoading,
+        isSuccess,
+        errorMessage,
+      ];
 }

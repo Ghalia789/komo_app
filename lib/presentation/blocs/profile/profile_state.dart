@@ -1,4 +1,6 @@
-class ProfileState {
+import 'package:equatable/equatable.dart';
+
+class ProfileState extends Equatable {
   final String name;
   final String email;
   final String role;
@@ -31,7 +33,7 @@ class ProfileState {
     String? name,
     String? email,
     String? role,
-    String? avatarUrl,
+    String? Function()? avatarUrl,
     int? tasksDone,
     int? projectsCount,
     int? onTimePercentage,
@@ -39,13 +41,13 @@ class ProfileState {
     int? activeProjectsCount,
     bool? isLoading,
     bool? isLoggingOut,
-    String? errorMessage,
+    String? Function()? errorMessage,
   }) {
     return ProfileState(
       name: name ?? this.name,
       email: email ?? this.email,
       role: role ?? this.role,
-      avatarUrl: avatarUrl ?? this.avatarUrl,
+      avatarUrl: avatarUrl != null ? avatarUrl() : this.avatarUrl,
       tasksDone: tasksDone ?? this.tasksDone,
       projectsCount: projectsCount ?? this.projectsCount,
       onTimePercentage: onTimePercentage ?? this.onTimePercentage,
@@ -53,7 +55,23 @@ class ProfileState {
       activeProjectsCount: activeProjectsCount ?? this.activeProjectsCount,
       isLoading: isLoading ?? this.isLoading,
       isLoggingOut: isLoggingOut ?? this.isLoggingOut,
-      errorMessage: errorMessage,
+      errorMessage: errorMessage != null ? errorMessage() : this.errorMessage,
     );
   }
+
+  @override
+  List<Object?> get props => [
+        name,
+        email,
+        role,
+        avatarUrl,
+        tasksDone,
+        projectsCount,
+        onTimePercentage,
+        teamMembersCount,
+        activeProjectsCount,
+        isLoading,
+        isLoggingOut,
+        errorMessage,
+      ];
 }

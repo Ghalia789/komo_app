@@ -36,7 +36,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     ProfileAvatarChanged event,
     Emitter<ProfileState> emit,
   ) {
-    emit(state.copyWith(avatarUrl: event.avatarPath));
+    emit(state.copyWith(avatarUrl: () => event.avatarPath));
   }
 
   Future<void> _onLogoutPressed(

@@ -1,4 +1,6 @@
-class CompleteProfileState {
+import 'package:equatable/equatable.dart';
+
+class CompleteProfileState extends Equatable {
   final String name;
   final String jobTitle;
   final String company;
@@ -8,7 +10,7 @@ class CompleteProfileState {
   final bool isLoading;
   final bool isSuccess;
 
-  CompleteProfileState({
+  const CompleteProfileState({
     this.name = '',
     this.jobTitle = '',
     this.company = '',
@@ -26,8 +28,8 @@ class CompleteProfileState {
     String? jobTitle,
     String? company,
     String? role,
-    String? avatarPath,
-    String? nameError,
+    String? Function()? avatarPath,
+    String? Function()? nameError,
     bool? isLoading,
     bool? isSuccess,
   }) {
@@ -36,10 +38,22 @@ class CompleteProfileState {
       jobTitle: jobTitle ?? this.jobTitle,
       company: company ?? this.company,
       role: role ?? this.role,
-      avatarPath: avatarPath ?? this.avatarPath,
-      nameError: nameError ?? this.nameError,
+      avatarPath: avatarPath != null ? avatarPath() : this.avatarPath,
+      nameError: nameError != null ? nameError() : this.nameError,
       isLoading: isLoading ?? this.isLoading,
       isSuccess: isSuccess ?? this.isSuccess,
     );
   }
+
+  @override
+  List<Object?> get props => [
+        name,
+        jobTitle,
+        company,
+        role,
+        avatarPath,
+        nameError,
+        isLoading,
+        isSuccess,
+      ];
 }

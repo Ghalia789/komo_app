@@ -1,8 +1,10 @@
+import 'package:equatable/equatable.dart';
+
 import '../../../data/models/comment_model.dart';
 import '../../../data/models/subtask_model.dart';
 import '../../../data/models/task_model.dart';
 
-class TaskDetailsState {
+class TaskDetailsState extends Equatable {
   final TaskModel? task;
   final List<SubtaskModel> subtasks;
   final List<CommentModel> comments;
@@ -12,7 +14,7 @@ class TaskDetailsState {
   final bool isLoading;
   final String? errorMessage;
 
-  TaskDetailsState({
+  const TaskDetailsState({
     this.task,
     this.subtasks = const [],
     this.comments = const [],
@@ -38,21 +40,33 @@ class TaskDetailsState {
     TaskModel? task,
     List<SubtaskModel>? subtasks,
     List<CommentModel>? comments,
-    String? selectedAssigneeId,
-    String? selectedAssigneeName,
-    List<String>? selectedTags,
+    String? Function()? selectedAssigneeId,
+    String? Function()? selectedAssigneeName,
+    List<String>? Function()? selectedTags,
     bool? isLoading,
-    String? errorMessage,
+    String? Function()? errorMessage,
   }) {
     return TaskDetailsState(
       task: task ?? this.task,
       subtasks: subtasks ?? this.subtasks,
       comments: comments ?? this.comments,
-      selectedAssigneeId: selectedAssigneeId ?? this.selectedAssigneeId,
-      selectedAssigneeName: selectedAssigneeName ?? this.selectedAssigneeName,
-      selectedTags: selectedTags ?? this.selectedTags,
+      selectedAssigneeId: selectedAssigneeId != null ? selectedAssigneeId() : this.selectedAssigneeId,
+      selectedAssigneeName: selectedAssigneeName != null ? selectedAssigneeName() : this.selectedAssigneeName,
+      selectedTags: selectedTags != null ? selectedTags() : this.selectedTags,
       isLoading: isLoading ?? this.isLoading,
-      errorMessage: errorMessage ?? this.errorMessage,
+      errorMessage: errorMessage != null ? errorMessage() : this.errorMessage,
     );
   }
+
+  @override
+  List<Object?> get props => [
+        task,
+        subtasks,
+        comments,
+        selectedAssigneeId,
+        selectedAssigneeName,
+        selectedTags,
+        isLoading,
+        errorMessage,
+      ];
 }
