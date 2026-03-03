@@ -4,6 +4,8 @@ class ProfileState extends Equatable {
   final String name;
   final String email;
   final String role;
+  final String jobTitle;
+  final String company;
   final String? avatarUrl;
   final int tasksDone;
   final int projectsCount;
@@ -19,6 +21,8 @@ class ProfileState extends Equatable {
     this.name = '',
     this.email = '',
     this.role = '',
+    this.jobTitle = '',
+    this.company = '',
     this.avatarUrl,
     this.tasksDone = 0,
     this.projectsCount = 0,
@@ -35,6 +39,8 @@ class ProfileState extends Equatable {
     String? name,
     String? email,
     String? role,
+    String? jobTitle,
+    String? company,
     String? Function()? avatarUrl,
     int? tasksDone,
     int? projectsCount,
@@ -50,6 +56,8 @@ class ProfileState extends Equatable {
       name: name ?? this.name,
       email: email ?? this.email,
       role: role ?? this.role,
+      jobTitle: jobTitle ?? this.jobTitle,
+      company: company ?? this.company,
       avatarUrl: avatarUrl != null ? avatarUrl() : this.avatarUrl,
       tasksDone: tasksDone ?? this.tasksDone,
       projectsCount: projectsCount ?? this.projectsCount,
@@ -68,6 +76,8 @@ class ProfileState extends Equatable {
         name,
         email,
         role,
+        jobTitle,
+        company,
         avatarUrl,
         tasksDone,
         projectsCount,

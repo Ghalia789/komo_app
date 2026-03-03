@@ -36,7 +36,9 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
         isLoading: false,
         name: user.name,
         email: user.email,
-        role: user.role ?? user.jobTitle ?? '',
+        role: user.role ?? '',
+        jobTitle: user.jobTitle ?? '',
+        company: user.company ?? '',
         avatarUrl: () => user.avatarUrl,
       )),
     );

@@ -85,9 +85,9 @@ class ProfileView extends StatelessWidget {
                           context,
                           RouteConstants.completeProfile,
                           arguments: CompleteProfileArguments(
-                            name: state.name,
-                            jobTitle: state.role.isNotEmpty ? state.role : null,
-                            company: null,
+                            name: state.name.isNotEmpty ? state.name : null,
+                            jobTitle: state.jobTitle.isNotEmpty ? state.jobTitle : null,
+                            company: state.company.isNotEmpty ? state.company : null,
                             role: state.role.isNotEmpty ? state.role : null,
                             avatarUrl: state.avatarUrl,
                           ),
