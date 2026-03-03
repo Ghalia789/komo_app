@@ -36,6 +36,7 @@ abstract class UserRepository {
     String? name,
     String? jobTitle,
     String? company,
+    String? role,
     String? avatarUrl,
   });
 

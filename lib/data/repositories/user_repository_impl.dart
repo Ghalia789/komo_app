@@ -92,6 +92,7 @@ class UserRepositoryImpl implements UserRepository {
     String? name,
     String? jobTitle,
     String? company,
+    String? role,
     String? avatarUrl,
   }) async {
     if (userId.isEmpty) {
@@ -102,6 +103,7 @@ class UserRepositoryImpl implements UserRepository {
     if (name != null) data['name'] = name;
     if (jobTitle != null) data['jobTitle'] = jobTitle;
     if (company != null) data['company'] = company;
+    if (role != null) data['role'] = role;
     if (avatarUrl != null) data['avatarUrl'] = avatarUrl;
     data['updatedAt'] = FieldValue.serverTimestamp();
 

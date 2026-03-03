@@ -1,16 +1,49 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/theme/app_colors.dart';
+import '../../injection.dart';
 import '../blocs/blocs.dart';
 import '../widgets/widgets.dart';
+
+class CompleteProfileArguments {
+  final String? name;
+  final String? jobTitle;
+  final String? company;
+  final String? role;
+  final String? avatarUrl;
+
+  const CompleteProfileArguments({
+    this.name,
+    this.jobTitle,
+    this.company,
+    this.role,
+    this.avatarUrl,
+  });
+}
 
 class CompleteProfilePage extends StatelessWidget {
   const CompleteProfilePage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final args = ModalRoute.of(context)?.settings.arguments as CompleteProfileArguments?;
     return BlocProvider(
-      create: (context) => CompleteProfileBloc(),
+      create: (context) {
+        final bloc = CompleteProfileBloc(
+          authRepository: locator(),
+          userRepository: locator(),
+        );
+        if (args != null) {
+          bloc.add(CompleteProfilePrefilled(
+            name: args.name,
+            jobTitle: args.jobTitle,
+            company: args.company,
+            role: args.role,
+            avatarUrl: args.avatarUrl,
+          ));
+        }
+        return bloc;
+      },
       child: const CompleteProfileView(),
     );
   }
@@ -189,10 +222,16 @@ class CompleteProfileView extends StatelessWidget {
                   // SAVE BUTTON
                   BlocConsumer<CompleteProfileBloc, CompleteProfileState>(
                     listenWhen: (previous, current) => 
-                      previous.isSuccess != current.isSuccess,
+                      previous.isSuccess != current.isSuccess ||
+                      previous.errorMessage != current.errorMessage,
                     listener: (context, state) {
                       if (state.isSuccess) {
                         Navigator.of(context).pushReplacementNamed('/dashboard');
+                      }
+                      if (state.errorMessage != null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(state.errorMessage!)),
+                        );
                       }
                     },
                     builder: (context, state) {

@@ -1,5 +1,21 @@
 abstract class CompleteProfileEvent {}
 
+class CompleteProfilePrefilled extends CompleteProfileEvent {
+  final String? name;
+  final String? jobTitle;
+  final String? company;
+  final String? role;
+  final String? avatarUrl;
+
+  CompleteProfilePrefilled({
+    this.name,
+    this.jobTitle,
+    this.company,
+    this.role,
+    this.avatarUrl,
+  });
+}
+
 class CompleteProfileNameChanged extends CompleteProfileEvent {
   final String name;
   CompleteProfileNameChanged(this.name);

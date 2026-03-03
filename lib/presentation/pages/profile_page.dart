@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../core/constants/app_constants.dart';
 import '../../core/theme/app_colors.dart';
+import '../../injection.dart';
 import '../blocs/profile/profile_bloc_exports.dart';
 import '../widgets/widgets.dart';
+import 'complete_profile_page.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -10,7 +13,10 @@ class ProfilePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => ProfileBloc()..add(ProfileLoadData()),
+      create: (context) => ProfileBloc(
+        authRepository: locator(),
+        userRepository: locator(),
+      )..add(ProfileLoadData()),
       child: const ProfileView(),
     );
   }
@@ -36,11 +42,16 @@ class ProfileView extends StatelessWidget {
       ),
       body: BlocConsumer<ProfileBloc, ProfileState>(
         listener: (context, state) {
-          if (state.isLoggingOut) {
+          if (state.logoutSuccess) {
             Navigator.pushNamedAndRemoveUntil(
               context,
               '/login',
               (route) => false,
+            );
+          }
+          if (state.errorMessage != null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.errorMessage!)),
             );
           }
         },
@@ -68,7 +79,20 @@ class ProfileView extends StatelessWidget {
                     _buildOptionTile(
                       icon: Icons.person_outline,
                       title: 'Edit Profile',
-                      onTap: () {},
+                      onTap: () {
+                        final state = context.read<ProfileBloc>().state;
+                        Navigator.pushNamed(
+                          context,
+                          RouteConstants.completeProfile,
+                          arguments: CompleteProfileArguments(
+                            name: state.name,
+                            jobTitle: state.role.isNotEmpty ? state.role : null,
+                            company: null,
+                            role: state.role.isNotEmpty ? state.role : null,
+                            avatarUrl: state.avatarUrl,
+                          ),
+                        );
+                      },
                     ),
                     _buildOptionTile(
                       icon: Icons.lock_outline,

@@ -12,6 +12,7 @@ class ProfileState extends Equatable {
   final int activeProjectsCount;
   final bool isLoading;
   final bool isLoggingOut;
+  final bool logoutSuccess;
   final String? errorMessage;
 
   const ProfileState({
@@ -26,6 +27,7 @@ class ProfileState extends Equatable {
     this.activeProjectsCount = 0,
     this.isLoading = false,
     this.isLoggingOut = false,
+    this.logoutSuccess = false,
     this.errorMessage,
   });
 
@@ -41,6 +43,7 @@ class ProfileState extends Equatable {
     int? activeProjectsCount,
     bool? isLoading,
     bool? isLoggingOut,
+    bool? logoutSuccess,
     String? Function()? errorMessage,
   }) {
     return ProfileState(
@@ -55,6 +58,7 @@ class ProfileState extends Equatable {
       activeProjectsCount: activeProjectsCount ?? this.activeProjectsCount,
       isLoading: isLoading ?? this.isLoading,
       isLoggingOut: isLoggingOut ?? this.isLoggingOut,
+      logoutSuccess: logoutSuccess ?? this.logoutSuccess,
       errorMessage: errorMessage != null ? errorMessage() : this.errorMessage,
     );
   }
@@ -72,6 +76,7 @@ class ProfileState extends Equatable {
         activeProjectsCount,
         isLoading,
         isLoggingOut,
+        logoutSuccess,
         errorMessage,
       ];
 }

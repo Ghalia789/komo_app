@@ -1,35 +1,45 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../domain/repositories/auth_repository.dart';
+import '../../../domain/repositories/user_repository.dart';
 import 'profile_event.dart';
 import 'profile_state.dart';
 
 class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
-  ProfileBloc() : super(const ProfileState()) {
+  ProfileBloc({
+    required AuthRepository authRepository,
+    required UserRepository userRepository,
+  })  : _authRepository = authRepository,
+        _userRepository = userRepository,
+        super(const ProfileState()) {
     on<ProfileLoadData>(_onLoadData);
     on<ProfileAvatarChanged>(_onAvatarChanged);
     on<ProfileLogoutPressed>(_onLogoutPressed);
   }
 
+  final AuthRepository _authRepository;
+  final UserRepository _userRepository;
+
   Future<void> _onLoadData(
     ProfileLoadData event,
     Emitter<ProfileState> emit,
   ) async {
-    emit(state.copyWith(isLoading: true));
+    emit(state.copyWith(isLoading: true, errorMessage: () => null, logoutSuccess: false));
 
-    // TODO: Load from Firebase/API
-    await Future.delayed(const Duration(milliseconds: 500));
+    final profileResult = await _userRepository.getCurrentUserProfile();
 
-    // Mock data
-    emit(state.copyWith(
-      isLoading: false,
-      name: 'Sarah Chen',
-      email: 'sarah.chen@example.com',
-      role: 'Product Designer',
-      tasksDone: 12,
-      projectsCount: 3,
-      onTimePercentage: 85,
-      teamMembersCount: 5,
-      activeProjectsCount: 3,
-    ));
+    profileResult.fold(
+      (failure) => emit(state.copyWith(
+        isLoading: false,
+        errorMessage: () => failure.message,
+      )),
+      (user) => emit(state.copyWith(
+        isLoading: false,
+        name: user.name,
+        email: user.email,
+        role: user.role ?? user.jobTitle ?? '',
+        avatarUrl: () => user.avatarUrl,
+      )),
+    );
   }
 
   void _onAvatarChanged(
@@ -43,11 +53,19 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     ProfileLogoutPressed event,
     Emitter<ProfileState> emit,
   ) async {
-    emit(state.copyWith(isLoggingOut: true));
+    emit(state.copyWith(isLoggingOut: true, errorMessage: () => null, logoutSuccess: false));
 
-    // TODO: Clear user session, tokens, etc.
-    await Future.delayed(const Duration(milliseconds: 300));
+    final result = await _authRepository.signOut();
 
-    emit(state.copyWith(isLoggingOut: false));
+    result.fold(
+      (failure) => emit(state.copyWith(
+        isLoggingOut: false,
+        errorMessage: () => failure.message,
+      )),
+      (_) => emit(state.copyWith(
+        isLoggingOut: false,
+        logoutSuccess: true,
+      )),
+    );
   }
 }
