@@ -7,6 +7,7 @@ class CompleteProfileState extends Equatable {
   final String role;
   final String? avatarPath;
   final String? nameError;
+  final String? errorMessage;
   final bool isLoading;
   final bool isSuccess;
 
@@ -17,6 +18,7 @@ class CompleteProfileState extends Equatable {
     this.role = '',
     this.avatarPath,
     this.nameError,
+    this.errorMessage,
     this.isLoading = false,
     this.isSuccess = false,
   });
@@ -30,6 +32,7 @@ class CompleteProfileState extends Equatable {
     String? role,
     String? Function()? avatarPath,
     String? Function()? nameError,
+    String? Function()? errorMessage,
     bool? isLoading,
     bool? isSuccess,
   }) {
@@ -40,6 +43,7 @@ class CompleteProfileState extends Equatable {
       role: role ?? this.role,
       avatarPath: avatarPath != null ? avatarPath() : this.avatarPath,
       nameError: nameError != null ? nameError() : this.nameError,
+      errorMessage: errorMessage != null ? errorMessage() : this.errorMessage,
       isLoading: isLoading ?? this.isLoading,
       isSuccess: isSuccess ?? this.isSuccess,
     );
@@ -53,6 +57,7 @@ class CompleteProfileState extends Equatable {
         role,
         avatarPath,
         nameError,
+        errorMessage,
         isLoading,
         isSuccess,
       ];

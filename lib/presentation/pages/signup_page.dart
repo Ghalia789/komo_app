@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/theme/app_colors.dart';
+import '../../injection.dart';
 import '../blocs/blocs.dart';
 import '../widgets/widgets.dart';
 
@@ -10,7 +11,9 @@ class SignupPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => SignupBloc(),
+      create: (context) => SignupBloc(
+        authRepository: locator(),
+      ),
       child: const SignupView(),
     );
   }

@@ -57,6 +57,8 @@ class StorageKeys {
   static const String userId = 'user_id';
   static const String isLoggedIn = 'is_logged_in';
   static const String isFirstLaunch = 'is_first_launch';
+  static const String rememberMe = 'remember_me';
+  static const String rememberedEmail = 'remembered_email';
   
   // User preferences
   static const String themeMode = 'theme_mode';

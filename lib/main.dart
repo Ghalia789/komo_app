@@ -2,31 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 
 import 'firebase_options.dart';
+import 'injection.dart';
 
 import 'core/theme/app_theme.dart';
 import 'data/models/project_model.dart';
-import 'presentation/blocs/create_project/create_project_bloc.dart';
-import 'presentation/pages/complete_profile_page.dart';
-import 'presentation/pages/create_project_page.dart';
-import 'presentation/pages/create_task_page.dart';
-import 'presentation/pages/dashboard_page.dart';
-import 'presentation/pages/invite_project_page.dart';
-import 'presentation/pages/kanban_page.dart';
-import 'presentation/pages/login_page.dart';
-import 'presentation/pages/notifications_page.dart';
-import 'presentation/pages/onboarding_page.dart';
-import 'presentation/pages/profile_page.dart';
-import 'presentation/pages/settings_page.dart';
-import 'presentation/pages/signup_page.dart';
-import 'presentation/pages/splash_page.dart';
-import 'presentation/pages/style_project_page.dart';
-import 'presentation/pages/task_details_page.dart';
+import 'presentation/pages/pages.dart';
+import 'presentation/blocs/blocs.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  configureDependencies();
 
   runApp(const KomoApp());
 }

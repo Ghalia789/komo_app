@@ -1,0 +1,15 @@
+export 'complete_profile_page.dart';
+export 'create_project_page.dart';
+export 'create_task_page.dart';
+export 'dashboard_page.dart';
+export 'invite_project_page.dart';
+export 'kanban_page.dart';
+export 'login_page.dart';
+export 'notifications_page.dart';
+export 'onboarding_page.dart';
+export 'profile_page.dart';
+export 'settings_page.dart';
+export 'signup_page.dart';
+export 'splash_page.dart';
+export 'style_project_page.dart';
+export 'task_details_page.dart';

@@ -3,6 +3,9 @@
 
 abstract class LoginEvent {}
 
+// Initialize: load remembered email/flag
+class LoginInitializeRequested extends LoginEvent {}
+
 // User typed in email field
 class LoginEmailChanged extends LoginEvent {
   final String email;
@@ -15,6 +18,12 @@ class LoginPasswordChanged extends LoginEvent {
   LoginPasswordChanged(this.password);
 }
 
+// User toggled remember me
+class LoginRememberMeToggled extends LoginEvent {
+  final bool rememberMe;
+  LoginRememberMeToggled(this.rememberMe);
+}
+
 // User tapped "Log In" button
 class LoginSubmitted extends LoginEvent {}
 
@@ -23,3 +32,9 @@ class LoginSignUpPressed extends LoginEvent {}
 
 // User tapped "Forgot password"
 class LoginForgotPasswordPressed extends LoginEvent {}
+
+// User confirmed forgot password action
+class LoginForgotPasswordSubmitted extends LoginEvent {
+  final String email;
+  LoginForgotPasswordSubmitted(this.email);
+}

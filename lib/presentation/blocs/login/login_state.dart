@@ -8,6 +8,8 @@ class LoginState extends Equatable {
   final bool isLoading;
   final bool isSuccess;
   final String? errorMessage;
+  final String? infoMessage;
+  final bool rememberMe;
 
   const LoginState({
     this.email = '',
@@ -17,6 +19,8 @@ class LoginState extends Equatable {
     this.isLoading = false,
     this.isSuccess = false,
     this.errorMessage,
+    this.infoMessage,
+    this.rememberMe = true,
   });
 
   bool get isValid => 
@@ -33,6 +37,8 @@ class LoginState extends Equatable {
     bool? isLoading,
     bool? isSuccess,
     String? Function()? errorMessage,
+    String? Function()? infoMessage,
+    bool? rememberMe,
   }) {
     return LoginState(
       email: email ?? this.email,
@@ -42,6 +48,8 @@ class LoginState extends Equatable {
       isLoading: isLoading ?? this.isLoading,
       isSuccess: isSuccess ?? this.isSuccess,
       errorMessage: errorMessage != null ? errorMessage() : this.errorMessage,
+      infoMessage: infoMessage != null ? infoMessage() : this.infoMessage,
+      rememberMe: rememberMe ?? this.rememberMe,
     );
   }
 
@@ -54,5 +62,7 @@ class LoginState extends Equatable {
         isLoading,
         isSuccess,
         errorMessage,
+        infoMessage,
+        rememberMe,
       ];
 }

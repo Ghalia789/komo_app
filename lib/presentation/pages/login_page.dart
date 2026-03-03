@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../core/constants/app_constants.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/utils/validators.dart';
+import '../../injection.dart';
 import '../blocs/blocs.dart';
 import '../widgets/widgets.dart';
 
@@ -11,15 +14,77 @@ class LoginPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => LoginBloc(),
+      create: (context) => LoginBloc(
+        authRepository: locator(),
+      )..add(LoginInitializeRequested()),
       child: const LoginView(),
     );
   }
 }
 
 // UI WIDGET: Builds the actual screen
-class LoginView extends StatelessWidget {
+class LoginView extends StatefulWidget {
   const LoginView({super.key});
+
+  @override
+  State<LoginView> createState() => _LoginViewState();
+}
+
+class _LoginViewState extends State<LoginView> {
+  final TextEditingController _emailController = TextEditingController();
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _showForgotDialog(BuildContext context, String prefill) async {
+    final controller = TextEditingController(text: prefill);
+    String? error;
+
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setState) {
+            return AlertDialog(
+              title: const Text('Reset password'),
+              content: TextField(
+                controller: controller,
+                keyboardType: TextInputType.emailAddress,
+                decoration: InputDecoration(
+                  hintText: 'Email',
+                  errorText: error,
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    final value = controller.text.trim();
+                    final validation = Validators.email(value);
+                    if (validation != null) {
+                      setState(() => error = validation);
+                      return;
+                    }
+                    context.read<LoginBloc>().add(
+                          LoginForgotPasswordSubmitted(value),
+                        );
+                    Navigator.of(ctx).pop();
+                  },
+                  child: const Text('Send'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -69,22 +134,34 @@ class LoginView extends StatelessWidget {
                     const SizedBox(height: 24),
                     
                     // EMAIL FIELD WITH ERROR
-                    BlocBuilder<LoginBloc, LoginState>(
-                      buildWhen: (previous, current) => 
-                        previous.email != current.email ||
-                        previous.emailError != current.emailError,
-                      builder: (context, state) {
-                        return KomoTextField(
-                          hint: 'Email',
-                          keyboardType: TextInputType.emailAddress,
-                          errorText: state.emailError,
-                          onChanged: (value) {
-                            context.read<LoginBloc>().add(
-                              LoginEmailChanged(value),
-                            );
-                          },
-                        );
+                    BlocListener<LoginBloc, LoginState>(
+                      listenWhen: (previous, current) => previous.email != current.email,
+                      listener: (_, state) {
+                        if (_emailController.text != state.email) {
+                          _emailController.text = state.email;
+                          _emailController.selection = TextSelection.fromPosition(
+                            TextPosition(offset: _emailController.text.length),
+                          );
+                        }
                       },
+                      child: BlocBuilder<LoginBloc, LoginState>(
+                        buildWhen: (previous, current) =>
+                            previous.email != current.email ||
+                            previous.emailError != current.emailError,
+                        builder: (context, state) {
+                          return KomoTextField(
+                            hint: 'Email',
+                            controller: _emailController,
+                            keyboardType: TextInputType.emailAddress,
+                            errorText: state.emailError,
+                            onChanged: (value) {
+                              context.read<LoginBloc>().add(
+                                    LoginEmailChanged(value),
+                                  );
+                            },
+                          );
+                        },
+                      ),
                     ),
                     
                     const SizedBox(height: 16),
@@ -108,20 +185,56 @@ class LoginView extends StatelessWidget {
                       },
                     ),
                     
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 12),
+
+                    // REMEMBER ME
+                    BlocBuilder<LoginBloc, LoginState>(
+                      buildWhen: (previous, current) => previous.rememberMe != current.rememberMe,
+                      builder: (context, state) {
+                        return Row(
+                          children: [
+                            Checkbox(
+                              value: state.rememberMe,
+                              onChanged: state.isLoading
+                                  ? null
+                                  : (value) {
+                                      if (value != null) {
+                                        context.read<LoginBloc>().add(
+                                              LoginRememberMeToggled(value),
+                                            );
+                                      }
+                                    },
+                              activeColor: AppColors.primary,
+                            ),
+                            const Text(
+                              'Remember me',
+                              style: TextStyle(color: AppColors.textPrimary),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+
+                    const SizedBox(height: 12),
                     
                     // LOG IN BUTTON
                     BlocConsumer<LoginBloc, LoginState>(
-                      listenWhen: (previous, current) => 
-                        previous.isSuccess != current.isSuccess ||
-                        previous.errorMessage != current.errorMessage,
+                      listenWhen: (previous, current) =>
+                          previous.isSuccess != current.isSuccess ||
+                          previous.errorMessage != current.errorMessage ||
+                          previous.infoMessage != current.infoMessage,
                       listener: (context, state) {
                         if (state.isSuccess) {
-                          Navigator.of(context).pushReplacementNamed('/dashboard');
+                          Navigator.of(context).pushReplacementNamed(RouteConstants.dashboard);
                         }
                         if (state.errorMessage != null) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text(state.errorMessage!)),
+                          );
+                        }
+                        if (state.infoMessage != null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(state.infoMessage!)),
                           );
                         }
                       },
@@ -133,8 +246,8 @@ class LoginView extends StatelessWidget {
                               ? null
                               : () {
                                   context.read<LoginBloc>().add(
-                                    LoginSubmitted(),
-                                  );
+                                        LoginSubmitted(),
+                                      );
                                 },
                         );
                       },
@@ -143,19 +256,24 @@ class LoginView extends StatelessWidget {
                     const SizedBox(height: 16),
                     
                     // FORGOT PASSWORD
-                    GestureDetector(
-                      onTap: () {
-                        context.read<LoginBloc>().add(
-                          LoginForgotPasswordPressed(),
+                    BlocBuilder<LoginBloc, LoginState>(
+                      buildWhen: (previous, current) => previous.isLoading != current.isLoading,
+                      builder: (context, state) {
+                        return GestureDetector(
+                          onTap: state.isLoading
+                              ? null
+                              : () => _showForgotDialog(context, state.email),
+                          child: Text(
+                            'Forgot password?',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: state.isLoading
+                                  ? AppColors.textHint
+                                  : AppColors.textSecondary,
+                            ),
+                          ),
                         );
                       },
-                      child: const Text(
-                        'Forgot password?',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
                     ),
                   ],
                 ),
