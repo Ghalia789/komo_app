@@ -61,8 +61,23 @@ Follows Clean Architecture for separation of concerns, testability, and maintain
 
 1. **Clone**: `git clone <repo-url>`
 2. **Install**: `flutter pub get`
-3. **Configure Firebase**: Add `google-services.json` and `GoogleService-Info.plist`
+3. **Configure Firebase (do not commit secrets)**:
+	 - Ask a maintainer for the encrypted Firebase configs and decode them locally:
+		 - `android/app/google-services.json`
+		 - `ios/GoogleService-Info.plist`
+	 - Generate `lib/firebase_options.dart` locally with FlutterFire:
+		 - `dart pub global activate flutterfire_cli`
+		 - `flutterfire configure --project=komo-1b403 --platforms=android -o lib/firebase_options.dart`
 4. **Run**: `flutter run`
+
+### CI hint (GitHub Actions)
+Store the Firebase configs as base64 strings in repository secrets and recreate them during CI before building:
+
+```bash
+echo "$GOOGLE_SERVICES_JSON" | base64 -d > android/app/google-services.json
+echo "$GOOGLE_SERVICE_INFO_PLIST" | base64 -d > ios/GoogleService-Info.plist
+flutterfire configure --project=komo-1b403 --platforms=android -o lib/firebase_options.dart
+```
 
 ## 📖 Usage
 
