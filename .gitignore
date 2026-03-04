@@ -35,6 +35,12 @@ migrate_working_dir/
 .packages
 pubspec.lock
 
+# Firebase config (do not commit secrets)
+android/app/google-services.json
+ios/GoogleService-Info.plist
+macos/GoogleService-Info.plist
+lib/firebase_options.dart
+
 # IDE
 .idea/
 .vscode/
