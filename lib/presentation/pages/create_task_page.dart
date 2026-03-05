@@ -1,18 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/theme/app_colors.dart';
+import '../../domain/repositories/task_repository.dart';
+import '../../injection.dart';
 import '../blocs/create_task/create_task_bloc.dart';
 import '../blocs/create_task/create_task_event.dart';
 import '../blocs/create_task/create_task_state.dart';
 import '../widgets/widgets.dart';
 
 class CreateTaskPage extends StatelessWidget {
-  const CreateTaskPage({super.key});
+  final String projectId;
+
+  const CreateTaskPage({super.key, required this.projectId});
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => CreateTaskBloc(),
+      create: (context) => CreateTaskBloc(
+        taskRepository: locator<TaskRepository>(),
+        projectId: projectId,
+      ),
       child: const CreateTaskView(),
     );
   }

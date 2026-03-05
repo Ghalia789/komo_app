@@ -192,9 +192,14 @@ class KanbanView extends StatelessWidget {
               break;
           }
         },
-        onFabPressed: () {
-          // Create new task
-          Navigator.of(context).pushNamed('/create-task');
+        onFabPressed: () async {
+          final result = await Navigator.of(context).pushNamed(
+            '/create-task',
+            arguments: project.id,
+          );
+          if (result == true && context.mounted) {
+            context.read<KanbanBloc>().add(KanbanLoadData(project.id));
+          }
         },
       ),
     );

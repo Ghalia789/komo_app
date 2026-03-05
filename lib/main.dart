@@ -11,9 +11,13 @@ import 'presentation/blocs/blocs.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (_) {
+    // Already initialized (e.g. hot-restart)
+  }
 
   configureDependencies();
 
@@ -38,13 +42,18 @@ class KomoApp extends StatelessWidget {
         '/dashboard': (context) => const DashboardPage(),
         '/invite-project': (context) => const InviteProjectPage(),
         '/create-project': (context) => const CreateProjectPage(),
-        '/create-task': (context) => const CreateTaskPage(),
         '/profile': (context) => const ProfilePage(),
         '/settings': (context) => const SettingsPage(),
         '/notifications': (context) => const NotificationsPage(),
       },
       onGenerateRoute: (settings) {
-        if (settings.name == '/kanban') {
+        if (settings.name == '/create-task') {
+          final projectId =
+              settings.arguments is String ? settings.arguments as String : '';
+          return MaterialPageRoute(
+            builder: (context) => CreateTaskPage(projectId: projectId),
+          );
+        } else if (settings.name == '/kanban') {
           if (settings.arguments is Project) {
             final project = settings.arguments as Project;
             return MaterialPageRoute(

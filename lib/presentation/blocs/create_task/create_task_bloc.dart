@@ -1,9 +1,18 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../domain/entities/task.dart';
+import '../../../domain/repositories/task_repository.dart';
 import 'create_task_event.dart';
 import 'create_task_state.dart';
 
 class CreateTaskBloc extends Bloc<CreateTaskEvent, CreateTaskState> {
-  CreateTaskBloc() : super(const CreateTaskState()) {
+  CreateTaskBloc({
+    required TaskRepository taskRepository,
+    required String projectId,
+    String currentUserId = '',
+  })  : _taskRepository = taskRepository,
+        _projectId = projectId,
+        _currentUserId = currentUserId,
+        super(const CreateTaskState()) {
     on<CreateTaskTitleChanged>(_onTitleChanged);
     on<CreateTaskDescriptionChanged>(_onDescriptionChanged);
     on<CreateTaskPriorityChanged>(_onPriorityChanged);
@@ -15,6 +24,24 @@ class CreateTaskBloc extends Bloc<CreateTaskEvent, CreateTaskState> {
     on<CreateTaskStartDateChanged>(_onStartDateChanged);
     on<CreateTaskSubmitted>(_onSubmitted);
     on<CreateTaskReset>(_onReset);
+  }
+
+  final TaskRepository _taskRepository;
+  final String _projectId;
+  // ignore: unused_field
+  final String _currentUserId;
+
+  TaskPriority _parsePriority(String p) {
+    switch (p.toLowerCase()) {
+      case 'low':
+        return TaskPriority.low;
+      case 'high':
+        return TaskPriority.high;
+      case 'urgent':
+        return TaskPriority.urgent;
+      default:
+        return TaskPriority.medium;
+    }
   }
 
   void _onTitleChanged(
@@ -109,15 +136,47 @@ class CreateTaskBloc extends Bloc<CreateTaskEvent, CreateTaskState> {
       return;
     }
 
-    emit(state.copyWith(isLoading: true));
+    if (_projectId.isEmpty) {
+      emit(state.copyWith(
+        errorMessage: () => 'No project selected',
+      ));
+      return;
+    }
 
-    // TODO: Save task to backend
-    await Future.delayed(const Duration(milliseconds: 600));
+    emit(state.copyWith(isLoading: true, errorMessage: () => null));
 
-    emit(state.copyWith(
-      isLoading: false,
-      isSuccess: true,
-    ));
+    final assigneeId = state.selectedAssigneeIds.isNotEmpty
+        ? state.selectedAssigneeIds.first
+        : null;
+
+    final now = DateTime.now();
+    final task = Task(
+      id: '',
+      projectId: _projectId,
+      title: state.title.trim(),
+      description:
+          state.description.trim().isNotEmpty ? state.description.trim() : null,
+      columnId: 'todo',
+      tags: state.selectedTags,
+      priority: _parsePriority(state.priority),
+      dueDate: state.dueDate,
+      startDate: state.startDate,
+      assigneeId: assigneeId,
+      order: DateTime.now().millisecondsSinceEpoch,
+      createdAt: now,
+    );
+
+    final result = await _taskRepository.createTask(task: task);
+    result.fold(
+      (failure) => emit(state.copyWith(
+        isLoading: false,
+        errorMessage: () => failure.message,
+      )),
+      (_) => emit(state.copyWith(
+        isLoading: false,
+        isSuccess: true,
+      )),
+    );
   }
 
   void _onReset(
