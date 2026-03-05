@@ -4,8 +4,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
 import 'data/repositories/auth_repository_impl.dart';
+import 'data/repositories/project_repository_impl.dart';
+import 'data/repositories/task_repository_impl.dart';
 import 'data/repositories/user_repository_impl.dart';
 import 'domain/repositories/auth_repository.dart';
+import 'domain/repositories/project_repository.dart';
+import 'domain/repositories/task_repository.dart';
 import 'domain/repositories/user_repository.dart';
 
 final GetIt locator = GetIt.instance;
@@ -26,6 +30,22 @@ void configureDependencies() {
 				firestore: FirebaseFirestore.instance,
 				auth: FirebaseAuth.instance,
 				storage: FirebaseStorage.instance,
+			),
+		);
+	}
+
+	if (!locator.isRegistered<ProjectRepository>()) {
+		locator.registerLazySingleton<ProjectRepository>(
+			() => ProjectRepositoryImpl(
+				firestore: FirebaseFirestore.instance,
+			),
+		);
+	}
+
+	if (!locator.isRegistered<TaskRepository>()) {
+		locator.registerLazySingleton<TaskRepository>(
+			() => TaskRepositoryImpl(
+				firestore: FirebaseFirestore.instance,
 			),
 		);
 	}
