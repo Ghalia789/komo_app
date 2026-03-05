@@ -1,9 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/theme/app_colors.dart';
-import '../../data/models/project_model.dart';
+import '../../domain/entities/project.dart';
+import '../../domain/repositories/auth_repository.dart';
+import '../../domain/repositories/project_repository.dart';
+import '../../injection.dart';
 import '../blocs/blocs.dart';
 import '../widgets/widgets.dart';
+
+/// Maps a project color string to a [Color] for UI display.
+Color _projectColor(String color) {
+  switch (color) {
+    case 'ocean':
+      return const Color(0xFF268060);
+    case 'sunset':
+      return const Color(0xFFD4A017);
+    case 'mono':
+      return const Color(0xFF3E0C54);
+    default:
+      return const Color(0xFF9600BF); // purple
+  }
+}
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
@@ -11,7 +28,10 @@ class DashboardPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => DashboardBloc()..add(DashboardLoadProjects()),
+      create: (context) => DashboardBloc(
+        authRepository: locator<AuthRepository>(),
+        projectRepository: locator<ProjectRepository>(),
+      )..add(DashboardLoadProjects()),
       child: const DashboardView(),
     );
   }
@@ -151,7 +171,7 @@ class DashboardView extends StatelessWidget {
 
 // PROJECT CARD - Uses KomoCard widget
 class ProjectCard extends StatelessWidget {
-  final ProjectModel project;
+  final Project project;
   final VoidCallback onTap;
 
   const ProjectCard({
@@ -162,8 +182,9 @@ class ProjectCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final color = _projectColor(project.color);
     return KomoCard(
-      leftBorderColor: project.getColorValue(),
+      leftBorderColor: color,
       onTap: onTap,
       padding: const EdgeInsets.all(16),
       child: SizedBox(
@@ -202,10 +223,10 @@ class ProjectCard extends StatelessWidget {
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(2),
                     child: LinearProgressIndicator(
-                      value: project.progressPercent,
+                      value: project.progress,
                       backgroundColor: AppColors.background,
                       valueColor: AlwaysStoppedAnimation<Color>(
-                        project.getColorValue(),
+                        color,
                       ),
                       minHeight: 4,
                     ),
@@ -241,7 +262,7 @@ class ProjectCard extends StatelessWidget {
                       Positioned(
                         right: 32,
                         child: _OverlappingAvatar(
-                          color: project.getColorValue(),
+                          color: _projectColor(project.color),
                           borderColor: AppColors.surface,
                         ),
                       ),

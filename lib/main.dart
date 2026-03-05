@@ -5,7 +5,7 @@ import 'firebase_options.dart';
 import 'injection.dart';
 
 import 'core/theme/app_theme.dart';
-import 'data/models/project_model.dart';
+import 'domain/entities/project.dart';
 import 'presentation/pages/pages.dart';
 import 'presentation/blocs/blocs.dart';
 
@@ -45,8 +45,8 @@ class KomoApp extends StatelessWidget {
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/kanban') {
-          if (settings.arguments is ProjectModel) {
-            final project = settings.arguments as ProjectModel;
+          if (settings.arguments is Project) {
+            final project = settings.arguments as Project;
             return MaterialPageRoute(
               builder: (context) => KanbanPage(project: project),
             );

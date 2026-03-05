@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/theme/app_colors.dart';
+import '../../domain/repositories/auth_repository.dart';
+import '../../domain/repositories/project_repository.dart';
+import '../../injection.dart';
 import '../blocs/blocs.dart';
 import '../widgets/widgets.dart';
 
@@ -11,7 +14,10 @@ class CreateProjectPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => CreateProjectBloc(),
+      create: (context) => CreateProjectBloc(
+        authRepository: locator<AuthRepository>(),
+        projectRepository: locator<ProjectRepository>(),
+      ),
       child: const CreateProjectView(),
     );
   }

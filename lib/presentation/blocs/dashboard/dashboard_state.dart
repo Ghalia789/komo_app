@@ -1,9 +1,9 @@
 import 'package:equatable/equatable.dart';
 
-import '../../../data/models/project_model.dart';
+import '../../../domain/entities/project.dart';
 
 class DashboardState extends Equatable {
-  final List<ProjectModel> projects;
+  final List<Project> projects;
   final bool isLoading;
   final String? errorMessage;
 
@@ -14,7 +14,7 @@ class DashboardState extends Equatable {
   });
 
   DashboardState copyWith({
-    List<ProjectModel>? projects,
+    List<Project>? projects,
     bool? isLoading,
     String? Function()? errorMessage,
   }) {

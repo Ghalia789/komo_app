@@ -1,6 +1,8 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 
+import '../../../domain/entities/project.dart';
+
 class ColorPalette extends Equatable {
   final String id;
   final String name;
@@ -35,6 +37,20 @@ class ColorPalette extends Equatable {
     ),
   ];
 
+  /// Maps palette id to the color string stored in Firestore.
+  String get colorKey {
+    switch (id) {
+      case 'ocean_depth':
+        return 'ocean';
+      case 'sunset_glow':
+        return 'sunset';
+      case 'midnight':
+        return 'mono';
+      default:
+        return 'purple';
+    }
+  }
+
   @override
   List<Object?> get props => [id, name, colors];
 }
@@ -49,23 +65,25 @@ class CreateProjectState extends Equatable {
   final bool isLoading;
   final bool isSuccess;
   final String? errorMessage;
+  final Project? createdProject;
 
   // Available icons for selection
   static const List<String> availableIcons = [
-    '📋', '🚀', '💡', '⚙️', '🔥', '⚡',
-    '🖼️', '🧠', '💜', '🌱', '🌻', '📐',
+    '\u{1F4CB}', '\u{1F680}', '\u{1F4A1}', '\u2699\uFE0F', '\u{1F525}', '\u26A1',
+    '\u{1F5BC}\uFE0F', '\u{1F9E0}', '\u{1F49C}', '\u{1F331}', '\u{1F33B}', '\u{1F4D0}',
   ];
 
   const CreateProjectState({
     this.name = '',
     this.description = '',
-    this.selectedIcon = '💡',
+    this.selectedIcon = '\u{1F4A1}',
     this.selectedPaletteId = 'purple_haze',
     this.dueDate,
     this.startDate,
     this.isLoading = false,
     this.isSuccess = false,
     this.errorMessage,
+    this.createdProject,
   });
 
   bool get isStep1Valid => name.trim().isNotEmpty;
@@ -86,6 +104,7 @@ class CreateProjectState extends Equatable {
     bool? isLoading,
     bool? isSuccess,
     String? Function()? errorMessage,
+    Project? Function()? createdProject,
   }) {
     return CreateProjectState(
       name: name ?? this.name,
@@ -97,6 +116,7 @@ class CreateProjectState extends Equatable {
       isLoading: isLoading ?? this.isLoading,
       isSuccess: isSuccess ?? this.isSuccess,
       errorMessage: errorMessage != null ? errorMessage() : this.errorMessage,
+      createdProject: createdProject != null ? createdProject() : this.createdProject,
     );
   }
 
@@ -111,5 +131,6 @@ class CreateProjectState extends Equatable {
         isLoading,
         isSuccess,
         errorMessage,
+        createdProject,
       ];
 }

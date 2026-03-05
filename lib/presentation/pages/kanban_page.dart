@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/theme/app_colors.dart';
-import '../../data/models/project_model.dart';
+import '../../domain/entities/project.dart';
+import '../../domain/repositories/task_repository.dart';
+import '../../injection.dart';
 import '../blocs/kanban/kanban_bloc_exports.dart';
 import '../widgets/widgets.dart';
 
 class KanbanPage extends StatelessWidget {
-  final ProjectModel project;
+  final Project project;
 
   const KanbanPage({
     super.key,
@@ -16,14 +18,16 @@ class KanbanPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => KanbanBloc()..add(KanbanLoadData()),
+      create: (context) => KanbanBloc(
+        taskRepository: locator<TaskRepository>(),
+      )..add(KanbanLoadData(project.id)),
       child: KanbanView(project: project),
     );
   }
 }
 
 class KanbanView extends StatelessWidget {
-  final ProjectModel project;
+  final Project project;
 
   const KanbanView({
     super.key,

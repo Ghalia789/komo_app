@@ -1,9 +1,17 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../domain/entities/project.dart';
+import '../../../domain/repositories/auth_repository.dart';
+import '../../../domain/repositories/project_repository.dart';
 import 'create_project_event.dart';
 import 'create_project_state.dart';
 
 class CreateProjectBloc extends Bloc<CreateProjectEvent, CreateProjectState> {
-  CreateProjectBloc() : super(const CreateProjectState()) {
+  CreateProjectBloc({
+    required AuthRepository authRepository,
+    required ProjectRepository projectRepository,
+  })  : _authRepository = authRepository,
+        _projectRepository = projectRepository,
+        super(const CreateProjectState()) {
     on<CreateProjectNameChanged>(_onNameChanged);
     on<CreateProjectDescriptionChanged>(_onDescriptionChanged);
     on<CreateProjectIconSelected>(_onIconSelected);
@@ -13,6 +21,9 @@ class CreateProjectBloc extends Bloc<CreateProjectEvent, CreateProjectState> {
     on<CreateProjectSubmitted>(_onSubmitted);
     on<CreateProjectReset>(_onReset);
   }
+
+  final AuthRepository _authRepository;
+  final ProjectRepository _projectRepository;
 
   void _onNameChanged(
     CreateProjectNameChanged event,
@@ -73,15 +84,44 @@ class CreateProjectBloc extends Bloc<CreateProjectEvent, CreateProjectState> {
       return;
     }
 
-    emit(state.copyWith(isLoading: true));
+    emit(state.copyWith(isLoading: true, errorMessage: () => null));
 
-    // TODO: Save project to backend
-    await Future.delayed(const Duration(milliseconds: 800));
+    final userResult = await _authRepository.getCurrentUser();
+    await userResult.fold(
+      (failure) async {
+        emit(state.copyWith(
+          isLoading: false,
+          errorMessage: () => failure.message,
+        ));
+      },
+      (user) async {
+        final project = Project(
+          id: '',
+          name: state.name.trim(),
+          description: state.description.trim(),
+          ownerId: user.id,
+          memberIds: [user.id],
+          color: state.selectedPalette.colorKey,
+          icon: state.selectedIcon,
+          dueDate: state.dueDate,
+          startDate: state.startDate,
+          createdAt: DateTime.now(),
+        );
 
-    emit(state.copyWith(
-      isLoading: false,
-      isSuccess: true,
-    ));
+        final result = await _projectRepository.createProject(project: project);
+        result.fold(
+          (failure) => emit(state.copyWith(
+            isLoading: false,
+            errorMessage: () => failure.message,
+          )),
+          (created) => emit(state.copyWith(
+            isLoading: false,
+            isSuccess: true,
+            createdProject: () => created,
+          )),
+        );
+      },
+    );
   }
 
   void _onReset(
