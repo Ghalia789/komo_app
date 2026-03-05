@@ -1,5 +1,7 @@
 abstract class CreateTaskEvent {}
 
+class CreateTaskProjectMembersLoaded extends CreateTaskEvent {}
+
 class CreateTaskTitleChanged extends CreateTaskEvent {
   final String title;
   CreateTaskTitleChanged(this.title);

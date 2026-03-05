@@ -3,11 +3,15 @@ import 'package:equatable/equatable.dart';
 import '../../../data/models/comment_model.dart';
 import '../../../data/models/subtask_model.dart';
 import '../../../data/models/task_model.dart';
+import '../../../domain/entities/user.dart' as domain;
 
 class TaskDetailsState extends Equatable {
   final TaskModel? task;
   final List<SubtaskModel> subtasks;
   final List<CommentModel> comments;
+  final List<domain.User> members;
+  final String currentUserId;
+  final String currentUserName;
   final String? selectedAssigneeId;
   final String? selectedAssigneeName;
   final List<String>? selectedTags;
@@ -18,6 +22,9 @@ class TaskDetailsState extends Equatable {
     this.task,
     this.subtasks = const [],
     this.comments = const [],
+    this.members = const [],
+    this.currentUserId = '',
+    this.currentUserName = 'Me',
     this.selectedAssigneeId,
     this.selectedAssigneeName,
     this.selectedTags,
@@ -40,6 +47,9 @@ class TaskDetailsState extends Equatable {
     TaskModel? task,
     List<SubtaskModel>? subtasks,
     List<CommentModel>? comments,
+    List<domain.User>? members,
+    String? currentUserId,
+    String? currentUserName,
     String? Function()? selectedAssigneeId,
     String? Function()? selectedAssigneeName,
     List<String>? Function()? selectedTags,
@@ -50,6 +60,9 @@ class TaskDetailsState extends Equatable {
       task: task ?? this.task,
       subtasks: subtasks ?? this.subtasks,
       comments: comments ?? this.comments,
+      members: members ?? this.members,
+      currentUserId: currentUserId ?? this.currentUserId,
+      currentUserName: currentUserName ?? this.currentUserName,
       selectedAssigneeId: selectedAssigneeId != null ? selectedAssigneeId() : this.selectedAssigneeId,
       selectedAssigneeName: selectedAssigneeName != null ? selectedAssigneeName() : this.selectedAssigneeName,
       selectedTags: selectedTags != null ? selectedTags() : this.selectedTags,
@@ -63,6 +76,9 @@ class TaskDetailsState extends Equatable {
         task,
         subtasks,
         comments,
+        members,
+        currentUserId,
+        currentUserName,
         selectedAssigneeId,
         selectedAssigneeName,
         selectedTags,

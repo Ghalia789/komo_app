@@ -2,11 +2,28 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../data/models/comment_model.dart';
 import '../../../data/models/subtask_model.dart';
 import '../../../data/models/task_model.dart';
+import '../../../domain/entities/comment.dart';
+import '../../../domain/entities/subtask.dart';
+import '../../../domain/entities/user.dart' as domain;
+import '../../../domain/repositories/project_repository.dart';
+import '../../../domain/repositories/task_repository.dart';
+import '../../../domain/repositories/user_repository.dart';
 import 'task_details_event.dart';
 import 'task_details_state.dart';
 
 class TaskDetailsBloc extends Bloc<TaskDetailsEvent, TaskDetailsState> {
-  TaskDetailsBloc() : super(TaskDetailsState()) {
+  final TaskRepository _taskRepository;
+  final ProjectRepository _projectRepository;
+  final UserRepository _userRepository;
+
+  TaskDetailsBloc({
+    required TaskRepository taskRepository,
+    required ProjectRepository projectRepository,
+    required UserRepository userRepository,
+  })  : _taskRepository = taskRepository,
+        _projectRepository = projectRepository,
+        _userRepository = userRepository,
+        super(const TaskDetailsState()) {
     on<TaskDetailsLoadData>(_onLoadData);
     on<TaskDetailsSubtaskToggled>(_onSubtaskToggled);
     on<TaskDetailsSubtaskAdded>(_onSubtaskAdded);
@@ -14,6 +31,7 @@ class TaskDetailsBloc extends Bloc<TaskDetailsEvent, TaskDetailsState> {
     on<TaskDetailsAssigneeChanged>(_onAssigneeChanged);
     on<TaskDetailsTagToggled>(_onTagToggled);
     on<TaskDetailsCommentAdded>(_onCommentAdded);
+    on<TaskDetailsStatusChanged>(_onStatusChanged);
     on<TaskDetailsInvitePressed>(_onInvitePressed);
   }
 
@@ -21,116 +39,224 @@ class TaskDetailsBloc extends Bloc<TaskDetailsEvent, TaskDetailsState> {
     TaskDetailsLoadData event,
     Emitter<TaskDetailsState> emit,
   ) async {
-    emit(state.copyWith(isLoading: true));
+    emit(state.copyWith(isLoading: true, errorMessage: () => null));
 
-    // TODO: Load from Firebase/API
-    await Future.delayed(const Duration(milliseconds: 500));
+    // Load the task first (we need its projectId for members)
+    final taskResult = await _taskRepository.getTask(taskId: event.taskId);
 
-    // Find the task from mock data
-    final task = TaskModel.getMockTasks().firstWhere(
-      (t) => t.id == event.taskId,
-      orElse: () => TaskModel.getMockTasks().first,
+    final taskFailure = taskResult.fold((f) => f, (_) => null);
+    if (taskFailure != null) {
+      emit(state.copyWith(
+        isLoading: false,
+        errorMessage: () => taskFailure.message,
+      ));
+      return;
+    }
+
+    final task = taskResult.getOrElse(() => throw Exception('unreachable'));
+    final taskModel = TaskModel.fromDomain(task);
+
+    // Kick off remaining requests in parallel
+    final subtasksFuture = _taskRepository.getSubtasks(taskId: event.taskId);
+    final commentsFuture = _taskRepository.getComments(taskId: event.taskId);
+    final currentUserFuture = _userRepository.getCurrentUserProfile();
+    final membersFuture =
+        _projectRepository.getProjectMembers(projectId: task.projectId);
+
+    final subtasksResult = await subtasksFuture;
+    final commentsResult = await commentsFuture;
+    final currentUserResult = await currentUserFuture;
+    final membersResult = await membersFuture;
+
+    final subtasks = subtasksResult.fold(
+      (_) => <SubtaskModel>[],
+      (list) => list.map(SubtaskModel.fromDomain).toList(),
+    );
+    final comments = commentsResult.fold(
+      (_) => <CommentModel>[],
+      (list) => list.map(CommentModel.fromDomain).toList(),
+    );
+    final currentUser = currentUserResult.fold((_) => null, (u) => u);
+    final members = membersResult.fold<List<domain.User>>(
+      (_) => const [],
+      (list) => list,
     );
 
     emit(state.copyWith(
       isLoading: false,
-      task: task,
-      subtasks: SubtaskModel.getMockSubtasks(),
-      comments: CommentModel.getMockComments(),
+      task: taskModel,
+      subtasks: subtasks,
+      comments: comments,
+      members: members,
+      currentUserId: currentUser?.id ?? '',
+      currentUserName: currentUser?.name ?? 'Me',
     ));
   }
 
-  void _onSubtaskToggled(
+  Future<void> _onSubtaskToggled(
     TaskDetailsSubtaskToggled event,
     Emitter<TaskDetailsState> emit,
-  ) {
-    final updatedSubtasks = state.subtasks.map((subtask) {
-      if (subtask.id == event.subtaskId) {
-        return subtask.copyWith(isCompleted: !subtask.isCompleted);
-      }
-      return subtask;
-    }).toList();
+  ) async {
+    if (state.task == null) return;
 
+    // Optimistic update
+    final updatedSubtasks = state.subtasks.map((s) {
+      return s.id == event.subtaskId
+          ? s.copyWith(isCompleted: !s.isCompleted)
+          : s;
+    }).toList();
     emit(state.copyWith(subtasks: updatedSubtasks));
+
+    // Persist to Firestore
+    await _taskRepository.toggleSubtaskCompletion(
+      subtaskId: event.subtaskId,
+      taskId: state.task!.id,
+    );
   }
 
-  void _onSubtaskAdded(
+  Future<void> _onSubtaskAdded(
     TaskDetailsSubtaskAdded event,
     Emitter<TaskDetailsState> emit,
-  ) {
-    if (event.title.trim().isEmpty) return;
-    
-    final newSubtask = SubtaskModel(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      taskId: state.task?.id ?? '',
+  ) async {
+    if (event.title.trim().isEmpty || state.task == null) return;
+
+    final newSubtask = Subtask(
+      id: '',
+      taskId: state.task!.id,
       title: event.title.trim(),
       isCompleted: false,
       order: state.subtasks.length + 1,
       createdAt: DateTime.now(),
     );
-    
-    final updatedSubtasks = [...state.subtasks, newSubtask];
-    emit(state.copyWith(subtasks: updatedSubtasks));
+
+    final result = await _taskRepository.createSubtask(subtask: newSubtask);
+    result.fold(
+      (_) {}, // silently swallow — UI already shows the field
+      (created) {
+        emit(state.copyWith(
+          subtasks: [...state.subtasks, SubtaskModel.fromDomain(created)],
+        ));
+      },
+    );
   }
 
-  void _onSubtaskRemoved(
+  Future<void> _onSubtaskRemoved(
     TaskDetailsSubtaskRemoved event,
     Emitter<TaskDetailsState> emit,
-  ) {
-    final updatedSubtasks = state.subtasks
-        .where((s) => s.id != event.subtaskId)
-        .toList();
-    emit(state.copyWith(subtasks: updatedSubtasks));
+  ) async {
+    if (state.task == null) return;
+
+    // Optimistic update
+    emit(state.copyWith(
+      subtasks: state.subtasks.where((s) => s.id != event.subtaskId).toList(),
+    ));
+
+    // Persist to Firestore
+    await _taskRepository.deleteSubtask(
+      subtaskId: event.subtaskId,
+      taskId: state.task!.id,
+    );
   }
 
-  void _onAssigneeChanged(
+  Future<void> _onAssigneeChanged(
     TaskDetailsAssigneeChanged event,
     Emitter<TaskDetailsState> emit,
-  ) {
+  ) async {
     if (state.task == null) return;
-    // In a real app, this would update the backend
-    // For now we just update local state
+
+    // Optimistic update
     emit(state.copyWith(
       selectedAssigneeId: () => event.assigneeId,
       selectedAssigneeName: () => event.assigneeName,
     ));
+
+    // Persist to Firestore — update full task with new assignee fields
+    final updatedTask = state.task!.toDomain().copyWith(
+          assigneeId: () => event.assigneeId,
+          assigneeName: () => event.assigneeName,
+          updatedAt: () => DateTime.now(),
+        );
+    await _taskRepository.updateTask(task: updatedTask);
   }
 
-  void _onTagToggled(
+  Future<void> _onTagToggled(
     TaskDetailsTagToggled event,
     Emitter<TaskDetailsState> emit,
-  ) {
-    final currentTags = List<String>.from(state.currentTags);
-    if (currentTags.contains(event.tag)) {
-      currentTags.remove(event.tag);
+  ) async {
+    if (state.task == null) return;
+
+    final updatedTags = List<String>.from(state.currentTags);
+    if (updatedTags.contains(event.tag)) {
+      updatedTags.remove(event.tag);
     } else {
-      currentTags.add(event.tag);
+      updatedTags.add(event.tag);
     }
-    emit(state.copyWith(selectedTags: () => currentTags));
+
+    // Optimistic update
+    emit(state.copyWith(selectedTags: () => updatedTags));
+
+    // Persist to Firestore
+    final updatedTask = state.task!.toDomain().copyWith(
+          tags: updatedTags,
+          updatedAt: () => DateTime.now(),
+        );
+    await _taskRepository.updateTask(task: updatedTask);
   }
 
-  void _onCommentAdded(
+  Future<void> _onCommentAdded(
     TaskDetailsCommentAdded event,
     Emitter<TaskDetailsState> emit,
-  ) {
-    final newComment = CommentModel(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      authorName: 'You', // TODO: Get from current user
+  ) async {
+    if (state.task == null) return;
+
+    final comment = Comment(
+      id: '',
+      taskId: state.task!.id,
+      authorId: state.currentUserId,
+      authorName:
+          state.currentUserName.isNotEmpty ? state.currentUserName : 'Me',
       authorPhotoUrl: null,
-      authorId: 'currentUserId',//TODO: Get from current user
-      taskId: state.task?.id ?? '', //TODO: Handle null case
       text: event.text,
       createdAt: DateTime.now(),
     );
 
-    final updatedComments = [...state.comments, newComment];
-    emit(state.copyWith(comments: updatedComments));
+    final result = await _taskRepository.addComment(comment: comment);
+    result.fold(
+      (_) {},
+      (created) {
+        emit(state.copyWith(
+          comments: [...state.comments, CommentModel.fromDomain(created)],
+        ));
+      },
+    );
+  }
+
+  Future<void> _onStatusChanged(
+    TaskDetailsStatusChanged event,
+    Emitter<TaskDetailsState> emit,
+  ) async {
+    if (state.task == null) return;
+
+    // Optimistic update — rebuild the TaskModel with the new columnId
+    final updatedTaskModel = TaskModel.fromDomain(
+      state.task!.toDomain().copyWith(
+            columnId: event.columnId,
+            updatedAt: () => DateTime.now(),
+          ),
+    );
+    emit(state.copyWith(task: updatedTaskModel));
+
+    // Persist to Firestore
+    await _taskRepository.updateTaskStatus(
+      taskId: state.task!.id,
+      status: event.columnId,
+    );
   }
 
   void _onInvitePressed(
     TaskDetailsInvitePressed event,
     Emitter<TaskDetailsState> emit,
   ) {
-    // Show invite dialog in UI
+    // Handled by the UI layer (show invite dialog)
   }
 }

@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/theme/app_colors.dart';
+import '../../domain/repositories/project_repository.dart';
+import '../../domain/repositories/task_repository.dart';
+import '../../domain/repositories/user_repository.dart';
+import '../../injection.dart';
 import '../blocs/blocs.dart';
+import '../blocs/create_task/create_task_state.dart';
 import '../widgets/widgets.dart';
 
 class TaskDetailsPage extends StatelessWidget {
@@ -15,7 +20,11 @@ class TaskDetailsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => TaskDetailsBloc()..add(TaskDetailsLoadData(taskId)),
+      create: (context) => TaskDetailsBloc(
+        taskRepository: locator<TaskRepository>(),
+        projectRepository: locator<ProjectRepository>(),
+        userRepository: locator<UserRepository>(),
+      )..add(TaskDetailsLoadData(taskId)),
       child: const TaskDetailsView(),
     );
   }
@@ -187,108 +196,113 @@ class _TaskDetailsViewState extends State<TaskDetailsView> {
                               ),
                           ] else
                             // Assignee selector when changing
-                            Wrap(
-                              spacing: 12,
-                              runSpacing: 12,
-                              children: Assignee.mockAssignees.map((assignee) {
-                                final isSelected =
-                                    state.currentAssigneeId == assignee.id;
-                                return GestureDetector(
-                                  onTap: () {
-                                    context.read<TaskDetailsBloc>().add(
-                                          TaskDetailsAssigneeChanged(
-                                            assignee.id,
-                                            assignee.name,
-                                          ),
-                                        );
-                                    setState(
-                                        () => _isChangingAssignee = false);
-                                  },
-                                  child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 200),
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 8),
-                                    decoration: BoxDecoration(
-                                      color: isSelected
-                                          ? assignee.color.withOpacity(0.15)
-                                          : AppColors.surface,
-                                      borderRadius: BorderRadius.circular(24),
-                                      border: Border.all(
-                                        color: isSelected
-                                            ? assignee.color
-                                            : AppColors.textHint
-                                                .withOpacity(0.3),
-                                        width: isSelected ? 2 : 1,
-                                      ),
+                            state.members.isEmpty
+                                ? Text(
+                                    'No project members found',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: AppColors.textHint,
                                     ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Container(
-                                          width: 28,
-                                          height: 28,
+                                  )
+                                : Wrap(
+                                    spacing: 12,
+                                    runSpacing: 12,
+                                    children: state.members.map((member) {
+                                      final isSelected =
+                                          state.currentAssigneeId == member.id;
+                                      final avatarColor = _colorForUser(member.id);
+                                      return GestureDetector(
+                                        onTap: () {
+                                          context.read<TaskDetailsBloc>().add(
+                                                TaskDetailsAssigneeChanged(
+                                                  member.id,
+                                                  member.name,
+                                                ),
+                                              );
+                                          setState(
+                                              () => _isChangingAssignee = false);
+                                        },
+                                        child: AnimatedContainer(
+                                          duration:
+                                              const Duration(milliseconds: 200),
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 12, vertical: 8),
                                           decoration: BoxDecoration(
-                                            color: assignee.color,
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: Center(
-                                            child: Text(
-                                              assignee.initials,
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.w600,
-                                              ),
+                                            color: isSelected
+                                                ? avatarColor.withOpacity(0.15)
+                                                : AppColors.surface,
+                                            borderRadius:
+                                                BorderRadius.circular(24),
+                                            border: Border.all(
+                                              color: isSelected
+                                                  ? avatarColor
+                                                  : AppColors.textHint
+                                                      .withOpacity(0.3),
+                                              width: isSelected ? 2 : 1,
                                             ),
                                           ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          assignee.name,
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: isSelected
-                                                ? FontWeight.w600
-                                                : FontWeight.w500,
-                                            color: isSelected
-                                                ? assignee.color
-                                                : AppColors.textPrimary,
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              KomoAvatar(
+                                                name: member.name,
+                                                size: 28,
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                member.name,
+                                                style: TextStyle(
+                                                  fontSize: 13,
+                                                  fontWeight: isSelected
+                                                      ? FontWeight.w600
+                                                      : FontWeight.w500,
+                                                  color: isSelected
+                                                      ? avatarColor
+                                                      : AppColors.textPrimary,
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ),
-                                      ],
-                                    ),
+                                      );
+                                    }).toList(),
                                   ),
-                                );
-                              }).toList(),
-                            ),
                         ],
                       ),
                       const SizedBox(height: 20),
 
-                      // STATUS
+                      // STATUS  
                       Row(
                         children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
+                          const Text(
+                            'Status',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.textSecondary,
                             ),
-                            decoration: BoxDecoration(
-                              color:
-                                  _getStatusColor(task.columnId).withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: _getStatusColor(task.columnId),
-                                width: 1,
-                              ),
-                            ),
-                            child: Text(
-                              _getStatusLabel(task.columnId),
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: _getStatusColor(task.columnId),
-                              ),
+                          ),
+                          const SizedBox(width: 12),
+                          DropdownButton<String>(
+                            value: task.columnId,
+                            underline: const SizedBox.shrink(),
+                            isDense: true,
+                            items: const [
+                              DropdownMenuItem(value: 'todo', child: Text('To Do')),
+                              DropdownMenuItem(value: 'in_progress', child: Text('In Progress')),
+                              DropdownMenuItem(value: 'done', child: Text('Done')),
+                            ],
+                            onChanged: (value) {
+                              if (value != null) {
+                                context.read<TaskDetailsBloc>().add(
+                                      TaskDetailsStatusChanged(value),
+                                    );
+                              }
+                            },
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: _getStatusColor(task.columnId),
                             ),
                           ),
                         ],
@@ -299,12 +313,14 @@ class _TaskDetailsViewState extends State<TaskDetailsView> {
                       KomoChipSelector<String>(
                         label: '🏷️ Tags',
                         options: CreateTaskState.availableTags,
-                        selected: task.tags,
+                        selected: state.currentTags,
                         colorForOption: (tag) =>
                             const CreateTaskState().getTagColor(tag),
                         labelForOption: (tag) => tag,
-                        onToggle: (_) {
-                          // Read-only in details view
+                        onToggle: (tag) {
+                          context
+                              .read<TaskDetailsBloc>()
+                              .add(TaskDetailsTagToggled(tag));
                         },
                       ),
                       const SizedBox(height: 24),
@@ -581,16 +597,16 @@ class _TaskDetailsViewState extends State<TaskDetailsView> {
     }
   }
 
-  String _getStatusLabel(String columnId) {
-    switch (columnId.toLowerCase()) {
-      case 'done':
-        return 'Done';
-      case 'in_progress':
-        return 'In Progress';
-      case 'todo':
-        return 'To Do';
-      default:
-        return columnId;
-    }
+  Color _colorForUser(String userId) {
+    const colors = [
+      Color(0xFF9600BF),
+      Color(0xFF268060),
+      Color(0xFFD4A017),
+      Color(0xFF4F9BD8),
+      Color(0xFFE87A2D),
+      Color(0xFFB85C6E),
+    ];
+    final index = userId.codeUnits.fold(0, (a, b) => a + b) % colors.length;
+    return colors[index];
   }
 }

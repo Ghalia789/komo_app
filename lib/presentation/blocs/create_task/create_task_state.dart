@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
+import '../../../domain/entities/user.dart' as domain;
 
 class Assignee extends Equatable {
   final String id;
@@ -38,6 +39,7 @@ class CreateTaskState extends Equatable {
   final List<String> selectedTags;
   final List<String> selectedAssigneeIds;
   final List<String> subtasks;
+  final List<domain.User> members; // real project members
   final bool isLoading;
   final bool isSuccess;
   final String? errorMessage;
@@ -62,6 +64,7 @@ class CreateTaskState extends Equatable {
     this.selectedTags = const [],
     this.selectedAssigneeIds = const [],
     this.subtasks = const [],
+    this.members = const [],
     this.isLoading = false,
     this.isSuccess = false,
     this.errorMessage,
@@ -112,6 +115,7 @@ class CreateTaskState extends Equatable {
     List<String>? selectedTags,
     List<String>? selectedAssigneeIds,
     List<String>? subtasks,
+    List<domain.User>? members,
     bool? isLoading,
     bool? isSuccess,
     String? Function()? errorMessage,
@@ -125,6 +129,7 @@ class CreateTaskState extends Equatable {
       selectedTags: selectedTags ?? this.selectedTags,
       selectedAssigneeIds: selectedAssigneeIds ?? this.selectedAssigneeIds,
       subtasks: subtasks ?? this.subtasks,
+      members: members ?? this.members,
       isLoading: isLoading ?? this.isLoading,
       isSuccess: isSuccess ?? this.isSuccess,
       errorMessage: errorMessage != null ? errorMessage() : this.errorMessage,
@@ -141,6 +146,7 @@ class CreateTaskState extends Equatable {
         selectedTags,
         selectedAssigneeIds,
         subtasks,
+        members,
         isLoading,
         isSuccess,
         errorMessage,

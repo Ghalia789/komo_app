@@ -58,8 +58,10 @@ class TaskRepositoryImpl implements TaskRepository {
       if (status != null && status.isNotEmpty) {
         query = query.where('columnId', isEqualTo: status);
       }
-      final snap = await query.orderBy('order').get();
-      return Right(snap.docs.map(_mapTaskDoc).toList());
+      final snap = await query.get();
+      final tasks = snap.docs.map(_mapTaskDoc).toList()
+        ..sort((a, b) => a.order.compareTo(b.order));
+      return Right(tasks);
     } catch (e) {
       return Left(ErrorMapper.mapExceptionToFailure(e));
     }
@@ -223,10 +225,13 @@ class TaskRepositoryImpl implements TaskRepository {
   Stream<Either<Failure, List<Task>>> watchTasks({required String projectId}) {
     return _tasksCol
         .where('projectId', isEqualTo: projectId)
-        .orderBy('order')
         .snapshots()
         .map<Either<Failure, List<Task>>>(
-          (snap) => Right(snap.docs.map(_mapTaskDoc).toList()),
+          (snap) {
+            final tasks = snap.docs.map(_mapTaskDoc).toList()
+              ..sort((a, b) => a.order.compareTo(b.order));
+            return Right(tasks);
+          },
         )
         .handleError((Object e) =>
             Left<Failure, List<Task>>(ErrorMapper.mapExceptionToFailure(e)));
@@ -253,9 +258,10 @@ class TaskRepositoryImpl implements TaskRepository {
     try {
       final snap = await _subtasksCol
           .where('taskId', isEqualTo: taskId)
-          .orderBy('order')
           .get();
-      return Right(snap.docs.map(_mapSubtaskDoc).toList());
+      final subtasks = snap.docs.map(_mapSubtaskDoc).toList()
+        ..sort((a, b) => a.order.compareTo(b.order));
+      return Right(subtasks);
     } catch (e) {
       return Left(ErrorMapper.mapExceptionToFailure(e));
     }
@@ -375,9 +381,10 @@ class TaskRepositoryImpl implements TaskRepository {
     try {
       final snap = await _commentsCol
           .where('taskId', isEqualTo: taskId)
-          .orderBy('createdAt')
           .get();
-      return Right(snap.docs.map(_mapCommentDoc).toList());
+      final comments = snap.docs.map(_mapCommentDoc).toList()
+        ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      return Right(comments);
     } catch (e) {
       return Left(ErrorMapper.mapExceptionToFailure(e));
     }
@@ -440,10 +447,13 @@ class TaskRepositoryImpl implements TaskRepository {
       {required String taskId}) {
     return _commentsCol
         .where('taskId', isEqualTo: taskId)
-        .orderBy('createdAt')
         .snapshots()
         .map<Either<Failure, List<Comment>>>(
-          (snap) => Right(snap.docs.map(_mapCommentDoc).toList()),
+          (snap) {
+            final comments = snap.docs.map(_mapCommentDoc).toList()
+              ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+            return Right(comments);
+          },
         )
         .handleError((Object e) =>
             Left<Failure, List<Comment>>(ErrorMapper.mapExceptionToFailure(e)));

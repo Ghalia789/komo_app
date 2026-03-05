@@ -36,4 +36,9 @@ class TaskDetailsCommentAdded extends TaskDetailsEvent {
   TaskDetailsCommentAdded(this.text);
 }
 
+class TaskDetailsStatusChanged extends TaskDetailsEvent {
+  final String columnId; // 'todo', 'in_progress', 'done'
+  TaskDetailsStatusChanged(this.columnId);
+}
+
 class TaskDetailsInvitePressed extends TaskDetailsEvent {}

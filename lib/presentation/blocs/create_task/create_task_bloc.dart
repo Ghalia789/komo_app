@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../domain/entities/task.dart';
+import '../../../domain/repositories/project_repository.dart';
 import '../../../domain/repositories/task_repository.dart';
 import 'create_task_event.dart';
 import 'create_task_state.dart';
@@ -9,10 +10,13 @@ class CreateTaskBloc extends Bloc<CreateTaskEvent, CreateTaskState> {
     required TaskRepository taskRepository,
     required String projectId,
     String currentUserId = '',
+    ProjectRepository? projectRepository,
   })  : _taskRepository = taskRepository,
         _projectId = projectId,
         _currentUserId = currentUserId,
+        _projectRepository = projectRepository,
         super(const CreateTaskState()) {
+    on<CreateTaskProjectMembersLoaded>(_onProjectMembersLoaded);
     on<CreateTaskTitleChanged>(_onTitleChanged);
     on<CreateTaskDescriptionChanged>(_onDescriptionChanged);
     on<CreateTaskPriorityChanged>(_onPriorityChanged);
@@ -24,12 +28,31 @@ class CreateTaskBloc extends Bloc<CreateTaskEvent, CreateTaskState> {
     on<CreateTaskStartDateChanged>(_onStartDateChanged);
     on<CreateTaskSubmitted>(_onSubmitted);
     on<CreateTaskReset>(_onReset);
+
+    // Auto-load project members if repository provided
+    if (_projectRepository != null && _projectId.isNotEmpty) {
+      add(CreateTaskProjectMembersLoaded());
+    }
   }
 
   final TaskRepository _taskRepository;
+  final ProjectRepository? _projectRepository;
   final String _projectId;
   // ignore: unused_field
   final String _currentUserId;
+
+  Future<void> _onProjectMembersLoaded(
+    CreateTaskProjectMembersLoaded event,
+    Emitter<CreateTaskState> emit,
+  ) async {
+    if (_projectRepository == null || _projectId.isEmpty) return;
+    final result = await _projectRepository!
+        .getProjectMembers(projectId: _projectId);
+    result.fold(
+      (_) {},
+      (members) => emit(state.copyWith(members: members)),
+    );
+  }
 
   TaskPriority _parsePriority(String p) {
     switch (p.toLowerCase()) {
