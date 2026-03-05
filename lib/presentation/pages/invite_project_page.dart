@@ -1,17 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/theme/app_colors.dart';
+import '../../domain/repositories/project_repository.dart';
+import '../../domain/repositories/user_repository.dart';
+import '../../injection.dart';
 import '../blocs/blocs.dart';
 import '../widgets/widgets.dart';
 
 // ENTRY POINT: Provides BLoC to the page
 class InviteProjectPage extends StatelessWidget {
-  const InviteProjectPage({super.key});
+  final String projectId;
+
+  const InviteProjectPage({super.key, required this.projectId});
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => InviteProjectBloc()..add(InviteProjectLoaded()),
+      create: (context) => InviteProjectBloc(
+        projectRepository: locator<ProjectRepository>(),
+        userRepository: locator<UserRepository>(),
+      )..add(InviteProjectLoaded(projectId)),
       child: const InviteProjectView(),
     );
   }

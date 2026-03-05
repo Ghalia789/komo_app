@@ -99,19 +99,49 @@ class TaskDetailsBloc extends Bloc<TaskDetailsEvent, TaskDetailsState> {
   ) async {
     if (state.task == null) return;
 
-    // Optimistic update
+    // Optimistic subtask update
     final updatedSubtasks = state.subtasks.map((s) {
       return s.id == event.subtaskId
           ? s.copyWith(isCompleted: !s.isCompleted)
           : s;
     }).toList();
-    emit(state.copyWith(subtasks: updatedSubtasks));
 
-    // Persist to Firestore
+    // Derive the new task status from completion ratio
+    final total = updatedSubtasks.length;
+    final completed = updatedSubtasks.where((s) => s.isCompleted).length;
+    final newStatus = total == 0
+        ? state.task!.columnId // no subtasks → leave status alone
+        : completed == total
+            ? 'done'
+            : completed > 0
+                ? 'in_progress'
+                : 'todo';
+
+    final statusChanged = newStatus != state.task!.columnId;
+    final updatedTaskModel = statusChanged
+        ? TaskModel.fromDomain(
+            state.task!.toDomain().copyWith(
+                  columnId: newStatus,
+                  updatedAt: () => DateTime.now(),
+                ),
+          )
+        : state.task!;
+
+    emit(state.copyWith(subtasks: updatedSubtasks, task: updatedTaskModel));
+
+    // Persist subtask toggle
     await _taskRepository.toggleSubtaskCompletion(
       subtaskId: event.subtaskId,
       taskId: state.task!.id,
     );
+
+    // Persist status change if needed
+    if (statusChanged) {
+      await _taskRepository.updateTaskStatus(
+        taskId: state.task!.id,
+        status: newStatus,
+      );
+    }
   }
 
   Future<void> _onSubtaskAdded(

@@ -6,6 +6,7 @@ import '../../domain/repositories/task_repository.dart';
 import '../../injection.dart';
 import '../blocs/kanban/kanban_bloc_exports.dart';
 import '../widgets/widgets.dart';
+import 'invite_project_page.dart';
 
 class KanbanPage extends StatelessWidget {
   final Project project;
@@ -57,7 +58,12 @@ class KanbanView extends StatelessWidget {
             padding: const EdgeInsets.only(right: 12),
             child: TextButton(
               onPressed: () {
-                Navigator.of(context).pushNamed('/invite-project');
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        InviteProjectPage(projectId: project.id),
+                  ),
+                );
               },
               style: TextButton.styleFrom(
                 backgroundColor: AppColors.primary.withOpacity(0.1),

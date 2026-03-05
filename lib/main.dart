@@ -40,7 +40,6 @@ class KomoApp extends StatelessWidget {
         '/signup': (context) => const SignupPage(), 
         '/complete-profile': (context) => const CompleteProfilePage(),
         '/dashboard': (context) => const DashboardPage(),
-        '/invite-project': (context) => const InviteProjectPage(),
         '/create-project': (context) => const CreateProjectPage(),
         '/profile': (context) => const ProfilePage(),
         '/settings': (context) => const SettingsPage(),

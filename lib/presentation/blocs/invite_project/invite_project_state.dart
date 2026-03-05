@@ -2,12 +2,14 @@ import 'package:equatable/equatable.dart';
 
 // Models for team members and invites
 class TeamMember extends Equatable {
+  final String id;
   final String name;
   final String email;
   final String role;
   final String? imageUrl;
 
   const TeamMember({
+    required this.id,
     required this.name,
     required this.email,
     required this.role,
@@ -15,7 +17,7 @@ class TeamMember extends Equatable {
   });
 
   @override
-  List<Object?> get props => [name, email, role, imageUrl];
+  List<Object?> get props => [id, name, email, role, imageUrl];
 }
 
 class PendingInvite extends Equatable {
@@ -33,6 +35,8 @@ class PendingInvite extends Equatable {
 
 // State
 class InviteProjectState extends Equatable {
+  final String projectId;
+  final String ownerId;
   final String projectTitle;
   final String projectDescription;
   final String inviteEmail;
@@ -45,6 +49,8 @@ class InviteProjectState extends Equatable {
   final List<TeamMember> teamMembers;
 
   const InviteProjectState({
+    this.projectId = '',
+    this.ownerId = '',
     this.projectTitle = '',
     this.projectDescription = '',
     this.inviteEmail = '',
@@ -60,6 +66,8 @@ class InviteProjectState extends Equatable {
   bool get isValid => inviteEmail.isNotEmpty && emailError == null;
 
   InviteProjectState copyWith({
+    String? projectId,
+    String? ownerId,
     String? projectTitle,
     String? projectDescription,
     String? inviteEmail,
@@ -72,6 +80,8 @@ class InviteProjectState extends Equatable {
     List<TeamMember>? teamMembers,
   }) {
     return InviteProjectState(
+      projectId: projectId ?? this.projectId,
+      ownerId: ownerId ?? this.ownerId,
       projectTitle: projectTitle ?? this.projectTitle,
       projectDescription: projectDescription ?? this.projectDescription,
       inviteEmail: inviteEmail ?? this.inviteEmail,
@@ -87,6 +97,8 @@ class InviteProjectState extends Equatable {
 
   @override
   List<Object?> get props => [
+        projectId,
+        ownerId,
         projectTitle,
         projectDescription,
         inviteEmail,

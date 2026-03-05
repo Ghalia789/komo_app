@@ -1,10 +1,20 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/utils/validators.dart';
+import '../../../domain/repositories/project_repository.dart';
+import '../../../domain/repositories/user_repository.dart';
 import 'invite_project_event.dart';
 import 'invite_project_state.dart';
 
 class InviteProjectBloc extends Bloc<InviteProjectEvent, InviteProjectState> {
-  InviteProjectBloc() : super(const InviteProjectState()) {
+  final ProjectRepository _projectRepository;
+  final UserRepository _userRepository;
+
+  InviteProjectBloc({
+    required ProjectRepository projectRepository,
+    required UserRepository userRepository,
+  })  : _projectRepository = projectRepository,
+        _userRepository = userRepository,
+        super(const InviteProjectState()) {
     on<InviteProjectLoaded>(_onLoaded);
     on<InviteEmailChanged>(_onEmailChanged);
     on<InviteSubmitted>(_onInviteSubmitted);
@@ -18,43 +28,44 @@ class InviteProjectBloc extends Bloc<InviteProjectEvent, InviteProjectState> {
     InviteProjectLoaded event,
     Emitter<InviteProjectState> emit,
   ) async {
-    emit(state.copyWith(isLoading: true));
+    emit(state.copyWith(isLoading: true, errorMessage: () => null));
 
-    // TODO: Fetch project details and team members from API
-    await Future.delayed(const Duration(milliseconds: 500));
+    final projectResult =
+        await _projectRepository.getProject(projectId: event.projectId);
 
-    // Mock data
+    final failure = projectResult.fold((f) => f, (_) => null);
+    if (failure != null) {
+      emit(state.copyWith(
+        isLoading: false,
+        errorMessage: () => failure.message,
+      ));
+      return;
+    }
+
+    final project = projectResult.getOrElse(() => throw Exception());
+    final membersResult =
+        await _projectRepository.getProjectMembers(projectId: event.projectId);
+
+    final members = membersResult.fold((_) => [], (list) => list);
+
+    final teamMembers = members.map((user) {
+      return TeamMember(
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.id == project.ownerId ? 'Owner' : 'Member',
+        imageUrl: user.avatarUrl,
+      );
+    }).toList();
+
     emit(state.copyWith(
       isLoading: false,
-      projectTitle: 'Website Redesign',
-      projectDescription: 'Collaborate with your team on this project',
-      pendingInvites: const [
-        PendingInvite(
-          email: 'john@gmail.com',
-          invitedAt: null,
-        ),
-        PendingInvite(
-          email: 'janedoe@company.com',
-          invitedAt: null,
-        ),
-      ],
-      teamMembers: const [
-        TeamMember(
-          name: 'Jane Smith',
-          email: 'jane@company.com',
-          role: 'Owner',
-        ),
-        TeamMember(
-          name: 'Morgan Free',
-          email: 'morgan@company.com',
-          role: 'Member',
-        ),
-        TeamMember(
-          name: 'Fay Spencer',
-          email: 'fay@company.com',
-          role: 'Member',
-        ),
-      ],
+      projectId: event.projectId,
+      ownerId: project.ownerId,
+      projectTitle: project.name,
+      projectDescription: project.description,
+      teamMembers: teamMembers,
+      pendingInvites: const [],
     ));
   }
 
@@ -73,58 +84,70 @@ class InviteProjectBloc extends Bloc<InviteProjectEvent, InviteProjectState> {
     InviteSubmitted event,
     Emitter<InviteProjectState> emit,
   ) async {
-    // Validate email
     final emailError = Validators.email(state.inviteEmail);
-
     if (emailError != null) {
       emit(state.copyWith(emailError: () => emailError));
       return;
     }
 
-    // Check if email is already in pending invites
-    final isDuplicate = state.pendingInvites
-        .any((invite) => invite.email.toLowerCase() == state.inviteEmail.toLowerCase());
-
-    if (isDuplicate) {
-      emit(state.copyWith(
-        emailError: () => 'This email has already been invited',
-      ));
-      return;
-    }
-
-    // Check if email is already a team member
-    final isTeamMember = state.teamMembers
-        .any((member) => member.email.toLowerCase() == state.inviteEmail.toLowerCase());
-
-    if (isTeamMember) {
+    final alreadyMember = state.teamMembers.any(
+      (m) => m.email.toLowerCase() == state.inviteEmail.toLowerCase(),
+    );
+    if (alreadyMember) {
       emit(state.copyWith(
         emailError: () => 'This person is already a team member',
       ));
       return;
     }
 
-    emit(state.copyWith(isLoading: true));
+    emit(state.copyWith(isLoading: true, emailError: () => null));
 
-    // TODO: Send invite via API
-    await Future.delayed(const Duration(seconds: 1));
-
-    // Add to pending invites
-    final newInvite = PendingInvite(
-      email: state.inviteEmail,
-      invitedAt: DateTime.now(),
+    final result = await _projectRepository.inviteMember(
+      projectId: state.projectId,
+      userEmail: state.inviteEmail.trim(),
     );
 
-    emit(state.copyWith(
-      isLoading: false,
-      isInviteSent: true,
-      inviteEmail: '',
-      pendingInvites: [...state.pendingInvites, newInvite],
-      successMessage: () => 'Invitation sent successfully!',
-    ));
+    result.fold(
+      (failure) {
+        final msg = failure.message.contains('No users found')
+            ? 'No account found for this email. Ask them to sign up first.'
+            : failure.message;
+        emit(state.copyWith(
+          isLoading: false,
+          emailError: () => msg,
+        ));
+      },
+      (_) async {
+        // Refresh members from Firestore after successful invite
+        final membersResult = await _projectRepository.getProjectMembers(
+          projectId: state.projectId,
+        );
+        final members = membersResult.fold((_) => state.teamMembers, (list) {
+          return list.map((user) {
+            return TeamMember(
+              id: user.id,
+              name: user.name,
+              email: user.email,
+              role: user.id == state.ownerId ? 'Owner' : 'Member',
+              imageUrl: user.avatarUrl,
+            );
+          }).toList();
+        });
 
-    // Clear success message after a delay
-    await Future.delayed(const Duration(seconds: 2));
-    emit(state.copyWith(successMessage: () => null, isInviteSent: false));
+        emit(state.copyWith(
+          isLoading: false,
+          isInviteSent: true,
+          inviteEmail: '',
+          teamMembers: members,
+          successMessage: () => 'Invitation sent successfully!',
+        ));
+
+        await Future.delayed(const Duration(seconds: 2));
+        if (!emit.isDone) {
+          emit(state.copyWith(successMessage: () => null, isInviteSent: false));
+        }
+      },
+    );
   }
 
   Future<void> _onInviteResend(
@@ -133,16 +156,27 @@ class InviteProjectBloc extends Bloc<InviteProjectEvent, InviteProjectState> {
   ) async {
     emit(state.copyWith(isLoading: true));
 
-    // TODO: Resend invite via API
-    await Future.delayed(const Duration(milliseconds: 500));
+    final result = await _projectRepository.inviteMember(
+      projectId: state.projectId,
+      userEmail: event.email,
+    );
 
-    emit(state.copyWith(
-      isLoading: false,
-      successMessage: () => 'Invitation resent to ${event.email}',
-    ));
-
-    await Future.delayed(const Duration(seconds: 2));
-    emit(state.copyWith(successMessage: () => null));
+    result.fold(
+      (failure) => emit(state.copyWith(
+        isLoading: false,
+        errorMessage: () => failure.message,
+      )),
+      (_) async {
+        emit(state.copyWith(
+          isLoading: false,
+          successMessage: () => 'Invitation resent to ${event.email}',
+        ));
+        await Future.delayed(const Duration(seconds: 2));
+        if (!emit.isDone) {
+          emit(state.copyWith(successMessage: () => null));
+        }
+      },
+    );
   }
 
   void _onInviteRemove(
@@ -152,19 +186,14 @@ class InviteProjectBloc extends Bloc<InviteProjectEvent, InviteProjectState> {
     final updatedInvites = state.pendingInvites
         .where((invite) => invite.email != event.email)
         .toList();
-
-    emit(state.copyWith(
-      pendingInvites: updatedInvites,
-      successMessage: () => 'Invitation removed',
-    ));
+    emit(state.copyWith(pendingInvites: updatedInvites));
   }
 
   void _onTeamMemberMenuTapped(
     TeamMemberMenuTapped event,
     Emitter<InviteProjectState> emit,
   ) {
-    // TODO: Show bottom sheet or dialog with options
-    // (Remove member, Change role, etc.)
+    // Handled in the UI layer (show bottom sheet / dialog)
   }
 
   Future<void> _onLeaveProjectPressed(
@@ -173,10 +202,29 @@ class InviteProjectBloc extends Bloc<InviteProjectEvent, InviteProjectState> {
   ) async {
     emit(state.copyWith(isLoading: true));
 
-    // TODO: Call API to leave project
-    await Future.delayed(const Duration(seconds: 1));
+    final currentUserResult = await _userRepository.getCurrentUserProfile();
+    final currentUser = currentUserResult.fold((_) => null, (u) => u);
 
-    // Navigate back handled in UI
-    emit(state.copyWith(isLoading: false));
+    if (currentUser == null) {
+      emit(state.copyWith(
+        isLoading: false,
+        errorMessage: () => 'Could not identify current user',
+      ));
+      return;
+    }
+
+    final result = await _projectRepository.leaveProject(
+      projectId: state.projectId,
+      userId: currentUser.id,
+    );
+
+    result.fold(
+      (failure) => emit(state.copyWith(
+        isLoading: false,
+        errorMessage: () => failure.message,
+      )),
+      (_) => emit(state.copyWith(isLoading: false)),
+      // Navigation back is handled by the UI layer watching errorMessage == null + isLoading == false
+    );
   }
 }

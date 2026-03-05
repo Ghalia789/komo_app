@@ -33,4 +33,7 @@ class TeamMemberMenuTapped extends InviteProjectEvent {
 class LeaveProjectPressed extends InviteProjectEvent {}
 
 // Page loaded - fetch initial data
-class InviteProjectLoaded extends InviteProjectEvent {}
+class InviteProjectLoaded extends InviteProjectEvent {
+  final String projectId;
+  InviteProjectLoaded(this.projectId);
+}
