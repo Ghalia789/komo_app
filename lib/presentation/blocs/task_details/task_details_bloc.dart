@@ -2,6 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../data/models/comment_model.dart';
 import '../../../data/models/subtask_model.dart';
 import '../../../data/models/task_model.dart';
+import '../../../domain/entities/app_notification.dart';
 import '../../../domain/entities/comment.dart';
 import '../../../domain/entities/subtask.dart';
 import '../../../domain/entities/user.dart' as domain;
@@ -194,19 +195,48 @@ class TaskDetailsBloc extends Bloc<TaskDetailsEvent, TaskDetailsState> {
   ) async {
     if (state.task == null) return;
 
-    // Optimistic update
-    emit(state.copyWith(
-      selectedAssigneeId: () => event.assigneeId,
-      selectedAssigneeName: () => event.assigneeName,
-    ));
+    final previousAssigneeId = state.task!.assigneeId;
 
-    // Persist to Firestore — update full task with new assignee fields
     final updatedTask = state.task!.toDomain().copyWith(
           assigneeId: () => event.assigneeId,
           assigneeName: () => event.assigneeName,
           updatedAt: () => DateTime.now(),
         );
-    await _taskRepository.updateTask(task: updatedTask);
+
+    // Optimistic update
+    emit(state.copyWith(
+      task: TaskModel.fromDomain(updatedTask),
+      selectedAssigneeId: () => event.assigneeId,
+      selectedAssigneeName: () => event.assigneeName,
+    ));
+
+    // Persist to Firestore — update full task with new assignee fields
+    final updateResult = await _taskRepository.updateTask(task: updatedTask);
+
+    if (updateResult.isLeft()) return;
+
+    final newAssigneeId = event.assigneeId;
+    if (newAssigneeId == null ||
+        newAssigneeId.isEmpty ||
+        newAssigneeId == state.currentUserId ||
+        newAssigneeId == previousAssigneeId) {
+      return;
+    }
+
+    final actorName =
+        state.currentUserName.isNotEmpty ? state.currentUserName : 'Someone';
+    await _projectRepository.createNotification(
+      notification: AppNotification(
+        id: '',
+        userId: newAssigneeId,
+        title: 'New task assigned',
+        message: '$actorName assigned you to "${state.task!.title}"',
+        type: AppNotificationType.taskAssigned,
+        createdAt: DateTime.now(),
+        relatedTaskId: state.task!.id,
+        relatedProjectId: state.task!.projectId,
+      ),
+    );
   }
 
   Future<void> _onTagToggled(
@@ -277,9 +307,37 @@ class TaskDetailsBloc extends Bloc<TaskDetailsEvent, TaskDetailsState> {
     emit(state.copyWith(task: updatedTaskModel));
 
     // Persist to Firestore
-    await _taskRepository.updateTaskStatus(
+    final updateResult = await _taskRepository.updateTaskStatus(
       taskId: state.task!.id,
       status: event.columnId,
+    );
+
+    if (event.columnId != 'done' || updateResult.isLeft()) return;
+
+    final projectResult =
+        await _projectRepository.getProject(projectId: state.task!.projectId);
+
+    await projectResult.fold(
+      (_) async {},
+      (project) async {
+        // Do not notify the same user who completed the task.
+        if (project.ownerId == state.currentUserId) return;
+
+        final actorName =
+            state.currentUserName.isNotEmpty ? state.currentUserName : 'Someone';
+        await _projectRepository.createNotification(
+          notification: AppNotification(
+            id: '',
+            userId: project.ownerId,
+            title: 'Task completed',
+            message: '$actorName completed "${state.task!.title}"',
+            type: AppNotificationType.taskCompleted,
+            createdAt: DateTime.now(),
+            relatedTaskId: state.task!.id,
+            relatedProjectId: state.task!.projectId,
+          ),
+        );
+      },
     );
   }
 

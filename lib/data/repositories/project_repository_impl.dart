@@ -24,7 +24,7 @@ class ProjectRepositoryImpl implements ProjectRepository {
   CollectionReference<Map<String, dynamic>> get _usersCol =>
       _firestore.collection(FirebaseConstants.usersCollection);
 
-    CollectionReference<Map<String, dynamic>> get _notificationsCol =>
+  CollectionReference<Map<String, dynamic>> get _notificationsCol =>
       _firestore.collection(FirebaseConstants.notificationsCollection);
 
   // ── helpers ──────────────────────────────────────────────────────────────
@@ -399,6 +399,30 @@ class ProjectRepositoryImpl implements ProjectRepository {
     try {
       await _notificationsCol.doc(notificationId).delete();
       return const Right(unit);
+    } catch (e) {
+      return Left(ErrorMapper.mapExceptionToFailure(e));
+    }
+  }
+
+  @override
+  Future<Either<Failure, AppNotification>> createNotification({
+    required AppNotification notification,
+  }) async {
+    try {
+      final docRef =
+          notification.id.isNotEmpty ? _notificationsCol.doc(notification.id) : _notificationsCol.doc();
+      final now = DateTime.now();
+
+      final model = AppNotificationModel.fromDomain(
+        notification.copyWith(
+          id: docRef.id,
+          createdAt: notification.createdAt,
+          updatedAt: () => now,
+        ),
+      );
+
+      await docRef.set(model.toJson());
+      return Right(model.toDomain());
     } catch (e) {
       return Left(ErrorMapper.mapExceptionToFailure(e));
     }

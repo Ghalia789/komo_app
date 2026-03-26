@@ -126,4 +126,9 @@ abstract class ProjectRepository {
   Future<Either<Failure, Unit>> deleteNotification({
     required String notificationId,
   });
+
+  /// Creates a notification.
+  Future<Either<Failure, AppNotification>> createNotification({
+    required AppNotification notification,
+  });
 }
