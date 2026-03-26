@@ -281,12 +281,39 @@ class TaskDetailsBloc extends Bloc<TaskDetailsEvent, TaskDetailsState> {
     );
 
     final result = await _taskRepository.addComment(comment: comment);
-    result.fold(
-      (_) {},
-      (created) {
+    await result.fold(
+      (_) async {},
+      (created) async {
         emit(state.copyWith(
           comments: [...state.comments, CommentModel.fromDomain(created)],
         ));
+
+        // Notify assignee first; fallback to project owner.
+        String? recipientId = state.task!.assigneeId;
+        if (recipientId == null || recipientId.isEmpty) {
+          final projectResult =
+              await _projectRepository.getProject(projectId: state.task!.projectId);
+          recipientId = projectResult.fold((_) => null, (project) => project.ownerId);
+        }
+
+        if (recipientId == null || recipientId.isEmpty || recipientId == state.currentUserId) {
+          return;
+        }
+
+        final actorName =
+            state.currentUserName.isNotEmpty ? state.currentUserName : 'Someone';
+        await _projectRepository.createNotification(
+          notification: AppNotification(
+            id: '',
+            userId: recipientId,
+            title: 'New comment',
+            message: '$actorName commented on "${state.task!.title}"',
+            type: AppNotificationType.comment,
+            createdAt: DateTime.now(),
+            relatedTaskId: state.task!.id,
+            relatedProjectId: state.task!.projectId,
+          ),
+        );
       },
     );
   }
