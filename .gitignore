@@ -59,3 +59,11 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Firebase Functions local artifacts and secrets
+firebase-functions/node_modules/
+firebase-functions/.firebaserc
+firebase-functions/.runtimeconfig.json
+firebase-functions/functions/.env
+firebase-functions/functions/.env.*
+firebase-functions/functions/.secret.local
