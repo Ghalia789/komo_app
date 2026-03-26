@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+    import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dartz/dartz.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
 
@@ -10,12 +11,17 @@ import '../../domain/repositories/auth_repository.dart';
 import '../models/user_model.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
-  AuthRepositoryImpl({required fb.FirebaseAuth auth, required FirebaseFirestore firestore})
+  AuthRepositoryImpl({
+    required fb.FirebaseAuth auth,
+    required FirebaseFirestore firestore,
+    required FirebaseFunctions functions,
+  })
       : _auth = auth,
-        _firestore = firestore;
+        _firestore = firestore,
+        _functions = functions;
 
   final fb.FirebaseAuth _auth;
-  final FirebaseFirestore _firestore;
+  final FirebaseFirestore _firestore;  final FirebaseFunctions _functions;
 
   CollectionReference<Map<String, dynamic>> get _usersCol =>
       _firestore.collection(FirebaseConstants.usersCollection);
@@ -146,6 +152,28 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<Either<Failure, Unit>> sendPasswordResetCode({required String email}) async {
+    try {
+      final callable = _functions.httpsCallable('sendPasswordResetCode');
+      await callable.call(<String, dynamic>{
+        'email': email.trim(),
+      });
+      return const Right(unit);
+    } on FirebaseFunctionsException catch (e) {
+      if (e.code == 'not-found') {
+        return const Left(
+          AuthFailure(
+            message: 'Password reset backend is not deployed yet. Deploy Cloud Functions and try again.',
+          ),
+        );
+      }
+      return Left(AuthFailure(message: e.message ?? 'Unable to send reset code'));
+    } catch (e) {
+      return Left(ErrorMapper.mapExceptionToFailure(e));
+    }
+  }
+
+  @override
   Future<Either<Failure, String>> verifyPasswordResetCode({required String code}) async {
     try {
       final email = await _auth.verifyPasswordResetCode(code);
@@ -168,6 +196,34 @@ class AuthRepositoryImpl implements AuthRepository {
       return Left(ErrorMapper.mapExceptionToFailure(
         ErrorMapper.mapFirebaseAuthError(e.code, e.message),
       ));
+    } catch (e) {
+      return Left(ErrorMapper.mapExceptionToFailure(e));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Unit>> confirmPasswordResetCode({
+    required String email,
+    required String code,
+    required String newPassword,
+  }) async {
+    try {
+      final callable = _functions.httpsCallable('confirmPasswordResetCode');
+      await callable.call(<String, dynamic>{
+        'email': email.trim(),
+        'code': code.trim(),
+        'newPassword': newPassword,
+      });
+      return const Right(unit);
+    } on FirebaseFunctionsException catch (e) {
+      if (e.code == 'not-found') {
+        return const Left(
+          AuthFailure(
+            message: 'Password reset backend is not deployed yet. Deploy Cloud Functions and try again.',
+          ),
+        );
+      }
+      return Left(AuthFailure(message: e.message ?? 'Unable to reset password'));
     } catch (e) {
       return Left(ErrorMapper.mapExceptionToFailure(e));
     }

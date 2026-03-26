@@ -139,7 +139,7 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
     emit(state.copyWith(isLoading: true, errorMessage: () => null, infoMessage: () => null));
 
     try {
-      final result = await _authRepository.sendPasswordResetEmail(
+      final result = await _authRepository.sendPasswordResetCode(
         email: event.email.trim(),
       );
 

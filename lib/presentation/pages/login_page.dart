@@ -40,47 +40,88 @@ class _LoginViewState extends State<LoginView> {
   }
 
   Future<void> _showForgotDialog(BuildContext context, String prefill) async {
+    final loginBloc = context.read<LoginBloc>();
     final controller = TextEditingController(text: prefill);
     String? error;
+    bool isLoading = false;
 
     await showDialog<void>(
       context: context,
       builder: (ctx) {
-        return StatefulBuilder(
-          builder: (ctx, setState) {
-            return AlertDialog(
-              title: const Text('Reset password'),
-              content: TextField(
-                controller: controller,
-                keyboardType: TextInputType.emailAddress,
-                decoration: InputDecoration(
-                  hintText: 'Email',
-                  errorText: error,
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(ctx).pop(),
-                  child: const Text('Cancel'),
-                ),
-                TextButton(
-                  onPressed: () {
-                    final value = controller.text.trim();
-                    final validation = Validators.email(value);
-                    if (validation != null) {
-                      setState(() => error = validation);
-                      return;
-                    }
-                    context.read<LoginBloc>().add(
-                          LoginForgotPasswordSubmitted(value),
-                        );
+        return BlocProvider.value(
+          value: loginBloc,
+          child: StatefulBuilder(
+            builder: (ctx, setState) {
+              return BlocListener<LoginBloc, LoginState>(
+                listenWhen: (previous, current) =>
+                    previous.isLoading != current.isLoading ||
+                    previous.infoMessage != current.infoMessage ||
+                    previous.errorMessage != current.errorMessage,
+                listener: (context, state) {
+                  setState(() => isLoading = state.isLoading);
+                  if (!state.isLoading && state.infoMessage != null) {
                     Navigator.of(ctx).pop();
-                  },
-                  child: const Text('Send'),
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(state.infoMessage!)),
+                    );
+                    Future.delayed(const Duration(milliseconds: 500), () {
+                      Navigator.of(context).pushNamed(
+                        RouteConstants.resetPassword,
+                        arguments: controller.text.trim(),
+                      );
+                    });
+                  }
+                  if (state.errorMessage != null) {
+                    setState(() => error = state.errorMessage);
+                  }
+                },
+                child: AlertDialog(
+                  title: const Text('Reset password'),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        'Enter your email to receive a 6-digit password reset code',
+                        style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: controller,
+                        keyboardType: TextInputType.emailAddress,
+                        enabled: !isLoading,
+                        decoration: InputDecoration(
+                          hintText: 'Email',
+                          errorText: error,
+                        ),
+                      ),
+                    ],
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: isLoading ? null : () => Navigator.of(ctx).pop(),
+                      child: const Text('Cancel'),
+                    ),
+                    TextButton(
+                      onPressed: isLoading
+                          ? null
+                          : () {
+                              final value = controller.text.trim();
+                              final validation = Validators.email(value);
+                              if (validation != null) {
+                                setState(() => error = validation);
+                                return;
+                              }
+                              context.read<LoginBloc>().add(
+                                    LoginForgotPasswordSubmitted(value),
+                                  );
+                            },
+                      child: Text(isLoading ? 'Sending...' : 'Send'),
+                    ),
+                  ],
                 ),
-              ],
-            );
-          },
+              );
+            },
+          ),
         );
       },
     );

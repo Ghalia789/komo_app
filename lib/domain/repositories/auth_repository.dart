@@ -43,6 +43,13 @@ abstract class AuthRepository {
     required String email,
   });
 
+  /// Sends a short numeric password reset code via backend callable.
+  ///
+  /// Returns [Unit] on success.
+  Future<Either<Failure, Unit>> sendPasswordResetCode({
+    required String email,
+  });
+
   /// Verifies a password reset code is valid.
   /// 
   /// Returns the email address associated with the code on success.
@@ -54,6 +61,15 @@ abstract class AuthRepository {
   /// 
   /// Returns [Unit] on success.
   Future<Either<Failure, Unit>> confirmPasswordReset({
+    required String code,
+    required String newPassword,
+  });
+
+  /// Confirms password reset using email + short code via backend callable.
+  ///
+  /// Returns [Unit] on success.
+  Future<Either<Failure, Unit>> confirmPasswordResetCode({
+    required String email,
     required String code,
     required String newPassword,
   });

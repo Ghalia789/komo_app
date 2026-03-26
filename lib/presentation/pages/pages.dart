@@ -8,6 +8,7 @@ export 'login_page.dart';
 export 'notifications_page.dart';
 export 'onboarding_page.dart';
 export 'profile_page.dart';
+export 'reset_password_page.dart';
 export 'settings_page.dart';
 export 'signup_page.dart';
 export 'splash_page.dart';

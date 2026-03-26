@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'injection.dart';
 
+import 'core/constants/app_constants.dart';
 import 'core/theme/app_theme.dart';
 import 'domain/entities/project.dart';
 import 'presentation/pages/pages.dart';
@@ -73,6 +74,11 @@ class KomoApp extends StatelessWidget {
               settings: settings,
             );
           }
+        } else if (settings.name == RouteConstants.resetPassword) {
+          final email = settings.arguments is String ? settings.arguments as String : '';
+          return MaterialPageRoute(
+            builder: (context) => ResetPasswordPage(email: email),
+          );
         }
         return null;
       },
