@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/theme/app_colors.dart';
+import '../../domain/entities/user.dart' as domain;
+import '../../domain/repositories/project_repository.dart';
 import '../../domain/repositories/task_repository.dart';
 import '../../injection.dart';
 import '../blocs/create_task/create_task_bloc.dart';
@@ -18,6 +20,7 @@ class CreateTaskPage extends StatelessWidget {
     return BlocProvider(
       create: (context) => CreateTaskBloc(
         taskRepository: locator<TaskRepository>(),
+        projectRepository: locator<ProjectRepository>(),
         projectId: projectId,
       ),
       child: const CreateTaskView(),
@@ -87,6 +90,7 @@ class _CreateTaskViewState extends State<CreateTaskView> {
           }
         },
         builder: (context, state) {
+          final assignees = _toAssignees(state.members);
           return SafeArea(
             child: Column(
               children: [
@@ -194,7 +198,7 @@ class _CreateTaskViewState extends State<CreateTaskView> {
 
                       // Assign To Section
                       AssigneeSelector(
-                        assignees: Assignee.mockAssignees,
+                        assignees: assignees,
                         selectedIds: state.selectedAssigneeIds,
                         onToggle: (id) {
                           context
@@ -236,6 +240,27 @@ class _CreateTaskViewState extends State<CreateTaskView> {
         },
       ),
     );
+  }
+
+  List<Assignee> _toAssignees(List<domain.User> members) {
+    final palette = <Color>[
+      const Color(0xFF9600BF),
+      const Color(0xFF268060),
+      const Color(0xFFD4A017),
+      const Color(0xFF4F9BD8),
+      const Color(0xFFB85C6E),
+      const Color(0xFF7D627F),
+    ];
+
+    return members.asMap().entries.map((entry) {
+      final i = entry.key;
+      final member = entry.value;
+      return Assignee(
+        id: member.id,
+        name: member.name,
+        color: palette[i % palette.length],
+      );
+    }).toList();
   }
 
   Widget _buildSectionLabel(String text) {

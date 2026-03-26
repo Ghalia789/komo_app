@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/theme/app_colors.dart';
+import '../../domain/repositories/auth_repository.dart';
+import '../../domain/repositories/user_repository.dart';
+import '../../injection.dart';
 import '../blocs/settings/settings_bloc_exports.dart';
 
 class SettingsPage extends StatelessWidget {
@@ -9,7 +12,10 @@ class SettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => SettingsBloc()..add(SettingsLoadData()),
+      create: (context) => SettingsBloc(
+        authRepository: locator<AuthRepository>(),
+        userRepository: locator<UserRepository>(),
+      )..add(SettingsLoadData()),
       child: const SettingsView(),
     );
   }
@@ -27,7 +33,21 @@ class SettingsView extends StatelessWidget {
         backgroundColor: AppColors.surface,
         elevation: 0,
       ),
-      body: BlocBuilder<SettingsBloc, SettingsState>(
+      body: BlocConsumer<SettingsBloc, SettingsState>(
+        listener: (context, state) {
+          if (state.errorMessage != null && state.errorMessage!.isNotEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.errorMessage!),
+                backgroundColor: AppColors.error,
+              ),
+            );
+          }
+
+          if (state.accountDeleted) {
+            Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+          }
+        },
         builder: (context, state) {
           if (state.isLoading) {
             return const Center(child: CircularProgressIndicator());

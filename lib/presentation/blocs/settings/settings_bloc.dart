@@ -1,9 +1,19 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../../core/constants/app_constants.dart';
+import '../../../domain/repositories/auth_repository.dart';
+import '../../../domain/repositories/user_repository.dart';
 import 'settings_event.dart';
 import 'settings_state.dart';
 
 class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
-  SettingsBloc() : super(const SettingsState()) {
+  SettingsBloc({
+    required AuthRepository authRepository,
+    required UserRepository userRepository,
+  })  : _authRepository = authRepository,
+        _userRepository = userRepository,
+        super(const SettingsState()) {
     on<SettingsLoadData>(_onLoadData);
     on<SettingsPushNotificationsChanged>(_onPushNotificationsChanged);
     on<SettingsEmailNotificationsChanged>(_onEmailNotificationsChanged);
@@ -14,16 +24,54 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
     on<SettingsDeleteAccountPressed>(_onDeleteAccount);
   }
 
+  final AuthRepository _authRepository;
+  final UserRepository _userRepository;
+
+  static const String _emailNotificationsKey = 'email_notifications_enabled';
+  static const String _taskRemindersKey = 'task_reminders_enabled';
+  static const String _darkModeKey = 'dark_mode_enabled';
+
+  Future<void> _saveBool(String key, bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(key, value);
+  }
+
+  Future<void> _saveString(String key, String value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(key, value);
+  }
+
   Future<void> _onLoadData(
     SettingsLoadData event,
     Emitter<SettingsState> emit,
   ) async {
-    emit(state.copyWith(isLoading: true));
+    emit(state.copyWith(
+      isLoading: true,
+      accountDeleted: false,
+      errorMessage: () => null,
+    ));
 
-    // TODO: Load settings from local storage
-    await Future.delayed(const Duration(milliseconds: 300));
+    final prefs = await SharedPreferences.getInstance();
+    final pushNotifications =
+        prefs.getBool(StorageKeys.notificationsEnabled) ?? state.pushNotifications;
+    final emailNotifications =
+        prefs.getBool(_emailNotificationsKey) ?? state.emailNotifications;
+    final taskReminders =
+        prefs.getBool(_taskRemindersKey) ?? state.taskReminders;
+    final darkMode = prefs.getBool(_darkModeKey) ?? state.darkMode;
+    final language = prefs.getString(StorageKeys.language) ?? state.language;
 
-    emit(state.copyWith(isLoading: false));
+    final cacheSize = _estimateCacheSizeMb(prefs);
+
+    emit(state.copyWith(
+      isLoading: false,
+      pushNotifications: pushNotifications,
+      emailNotifications: emailNotifications,
+      taskReminders: taskReminders,
+      darkMode: darkMode,
+      language: language,
+      cacheSize: cacheSize,
+    ));
   }
 
   void _onPushNotificationsChanged(
@@ -31,7 +79,7 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
     Emitter<SettingsState> emit,
   ) {
     emit(state.copyWith(pushNotifications: event.value));
-    // TODO: Save to local storage
+    _saveBool(StorageKeys.notificationsEnabled, event.value);
   }
 
   void _onEmailNotificationsChanged(
@@ -39,6 +87,7 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
     Emitter<SettingsState> emit,
   ) {
     emit(state.copyWith(emailNotifications: event.value));
+    _saveBool(_emailNotificationsKey, event.value);
   }
 
   void _onTaskRemindersChanged(
@@ -46,6 +95,7 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
     Emitter<SettingsState> emit,
   ) {
     emit(state.copyWith(taskReminders: event.value));
+    _saveBool(_taskRemindersKey, event.value);
   }
 
   void _onDarkModeChanged(
@@ -53,7 +103,7 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
     Emitter<SettingsState> emit,
   ) {
     emit(state.copyWith(darkMode: event.value));
-    // TODO: Update theme
+    _saveBool(_darkModeKey, event.value);
   }
 
   void _onLanguageChanged(
@@ -61,7 +111,7 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
     Emitter<SettingsState> emit,
   ) {
     emit(state.copyWith(language: event.language));
-    // TODO: Update locale
+    _saveString(StorageKeys.language, event.language);
   }
 
   Future<void> _onClearCache(
@@ -70,8 +120,10 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
   ) async {
     emit(state.copyWith(isClearingCache: true));
 
-    // TODO: Actually clear cache
-    await Future.delayed(const Duration(milliseconds: 500));
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(StorageKeys.cachedUser);
+    await prefs.remove(StorageKeys.cachedProjects);
+    await prefs.remove(StorageKeys.cacheTimestamp);
 
     emit(state.copyWith(
       isClearingCache: false,
@@ -83,6 +135,55 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
     SettingsDeleteAccountPressed event,
     Emitter<SettingsState> emit,
   ) async {
-    // TODO: Delete account from backend
+    emit(state.copyWith(isLoading: true, errorMessage: () => null));
+
+    final currentUserResult = await _authRepository.getCurrentUser();
+    await currentUserResult.fold(
+      (failure) async {
+        emit(state.copyWith(
+          isLoading: false,
+          errorMessage: () => failure.message,
+        ));
+      },
+      (user) async {
+        final deleteResult = await _userRepository.deleteAccount(userId: user.id);
+        await deleteResult.fold(
+          (failure) async {
+            emit(state.copyWith(
+              isLoading: false,
+              errorMessage: () => failure.message,
+            ));
+          },
+          (_) async {
+            await _authRepository.signOut();
+            emit(state.copyWith(
+              isLoading: false,
+              accountDeleted: true,
+            ));
+          },
+        );
+      },
+    );
+  }
+
+  int _estimateCacheSizeMb(SharedPreferences prefs) {
+    final keys = [
+      StorageKeys.cachedUser,
+      StorageKeys.cachedProjects,
+      StorageKeys.cacheTimestamp,
+    ];
+    var totalChars = 0;
+    for (final key in keys) {
+      final value = prefs.get(key);
+      if (value is String) totalChars += value.length;
+      if (value is List<String>) {
+        totalChars += value.join('').length;
+      }
+    }
+
+    // Rough estimate (UTF-16 chars in memory) converted to MB.
+    final bytes = totalChars * 2;
+    final mb = (bytes / (1024 * 1024)).ceil();
+    return mb <= 0 ? 0 : mb;
   }
 }

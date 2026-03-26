@@ -9,6 +9,7 @@ class SettingsState extends Equatable {
   final int cacheSize; // in MB
   final bool isLoading;
   final bool isClearingCache;
+  final bool accountDeleted;
   final String? errorMessage;
 
   static const List<String> availableLanguages = [
@@ -27,6 +28,7 @@ class SettingsState extends Equatable {
     this.cacheSize = 24,
     this.isLoading = false,
     this.isClearingCache = false,
+    this.accountDeleted = false,
     this.errorMessage,
   });
 
@@ -39,6 +41,7 @@ class SettingsState extends Equatable {
     int? cacheSize,
     bool? isLoading,
     bool? isClearingCache,
+    bool? accountDeleted,
     String? Function()? errorMessage,
   }) {
     return SettingsState(
@@ -50,6 +53,7 @@ class SettingsState extends Equatable {
       cacheSize: cacheSize ?? this.cacheSize,
       isLoading: isLoading ?? this.isLoading,
       isClearingCache: isClearingCache ?? this.isClearingCache,
+      accountDeleted: accountDeleted ?? this.accountDeleted,
       errorMessage: errorMessage != null ? errorMessage() : this.errorMessage,
     );
   }
@@ -64,6 +68,7 @@ class SettingsState extends Equatable {
         cacheSize,
         isLoading,
         isClearingCache,
+    accountDeleted,
         errorMessage,
       ];
 }
