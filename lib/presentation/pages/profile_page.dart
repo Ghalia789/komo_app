@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/theme/app_colors.dart';
 import '../../injection.dart';
@@ -24,6 +25,8 @@ class ProfilePage extends StatelessWidget {
 
 class ProfileView extends StatelessWidget {
   const ProfileView({super.key});
+
+  static final ImagePicker _picker = ImagePicker();
 
   @override
   Widget build(BuildContext context) {
@@ -200,8 +203,7 @@ class ProfileView extends StatelessWidget {
               right: 0,
               child: GestureDetector(
                 onTap: () {
-                  // TODO: Image picker
-                  context.read<ProfileBloc>().add(ProfileAvatarChanged(null));
+                  _pickAvatar(context);
                 },
                 child: Container(
                   padding: const EdgeInsets.all(6),
@@ -261,6 +263,18 @@ class ProfileView extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  Future<void> _pickAvatar(BuildContext context) async {
+    final image = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+      maxWidth: 1024,
+    );
+
+    if (!context.mounted || image == null) return;
+
+    context.read<ProfileBloc>().add(ProfileAvatarChanged(image.path));
   }
 
   Widget _buildStatsRow(ProfileState state) {

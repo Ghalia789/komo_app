@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../core/theme/app_colors.dart';
 import '../../injection.dart';
 import '../blocs/blocs.dart';
@@ -68,6 +71,7 @@ class _CompleteProfileViewState extends State<CompleteProfileView> {
   late final TextEditingController _nameController;
   late final TextEditingController _jobTitleController;
   late final TextEditingController _companyController;
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
@@ -125,9 +129,7 @@ class _CompleteProfileViewState extends State<CompleteProfileView> {
                         return CircleAvatar(
                           radius: 60,
                           backgroundColor: AppColors.primary.withOpacity(0.1),
-                          backgroundImage: state.avatarPath != null
-                              ? NetworkImage(state.avatarPath!)
-                              : null,
+                          backgroundImage: _avatarImage(state.avatarPath),
                           child: state.avatarPath == null
                               ? const Icon(
                                   Icons.person_outline,
@@ -146,12 +148,7 @@ class _CompleteProfileViewState extends State<CompleteProfileView> {
                         backgroundColor: AppColors.primary,
                         child: IconButton(
                           icon: const Icon(Icons.camera_alt, size: 20, color: Colors.white),
-                          onPressed: () {
-                            // TODO: Image picker
-                            context.read<CompleteProfileBloc>().add(
-                              CompleteProfileAvatarChanged(null),
-                            );
-                          },
+                          onPressed: () => _pickAvatar(context),
                         ),
                       ),
                     ),
@@ -300,5 +297,27 @@ class _CompleteProfileViewState extends State<CompleteProfileView> {
         ),
       ),
     );
+  }
+
+  ImageProvider? _avatarImage(String? avatarPath) {
+    if (avatarPath == null || avatarPath.isEmpty) return null;
+    if (avatarPath.startsWith('http')) {
+      return NetworkImage(avatarPath);
+    }
+    return FileImage(File(avatarPath));
+  }
+
+  Future<void> _pickAvatar(BuildContext context) async {
+    final image = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+      maxWidth: 1024,
+    );
+
+    if (!context.mounted || image == null) return;
+
+    context
+        .read<CompleteProfileBloc>()
+        .add(CompleteProfileAvatarChanged(image.path));
   }
 }

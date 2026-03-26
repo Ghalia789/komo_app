@@ -25,3 +25,5 @@ class NotificationsStreamFailed extends NotificationsEvent {
   final String message;
   NotificationsStreamFailed(this.message);
 }
+
+class NotificationsNavigationHandled extends NotificationsEvent {}

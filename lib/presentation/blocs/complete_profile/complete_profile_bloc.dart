@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/utils/validators.dart';
 import '../../../domain/repositories/auth_repository.dart';
@@ -85,13 +87,35 @@ class CompleteProfileBloc extends Bloc<CompleteProfileEvent, CompleteProfileStat
 
     if (userId == null) return;
 
+    String? avatarUrl = state.avatarPath;
+    if (avatarUrl != null && avatarUrl.isNotEmpty && !avatarUrl.startsWith('http')) {
+      final uploadResult = await _userRepository.uploadAvatar(
+        userId: userId!,
+        imageFile: File(avatarUrl),
+      );
+
+      final uploaded = uploadResult.fold<String?>(
+        (failure) {
+          emit(state.copyWith(
+            isLoading: false,
+            errorMessage: () => failure.message,
+          ));
+          return null;
+        },
+        (url) => url,
+      );
+
+      if (uploaded == null) return;
+      avatarUrl = uploaded;
+    }
+
     final updateResult = await _userRepository.updateProfileFields(
       userId: userId!,
       name: state.name.trim(),
       jobTitle: state.jobTitle.trim().isNotEmpty ? state.jobTitle.trim() : null,
       company: state.company.trim().isNotEmpty ? state.company.trim() : null,
       role: state.role.trim().isNotEmpty ? state.role.trim() : null,
-      avatarUrl: state.avatarPath,
+      avatarUrl: avatarUrl,
     );
 
     updateResult.fold(

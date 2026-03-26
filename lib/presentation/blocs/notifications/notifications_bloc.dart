@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../domain/entities/app_notification.dart';
 import '../../../domain/repositories/auth_repository.dart';
 import '../../../domain/repositories/project_repository.dart';
@@ -20,6 +21,7 @@ class NotificationsBloc extends Bloc<NotificationsEvent, NotificationsState> {
     on<NotificationsMarkAllRead>(_onMarkAllRead);
     on<NotificationsStreamUpdated>(_onStreamUpdated);
     on<NotificationsStreamFailed>(_onStreamFailed);
+    on<NotificationsNavigationHandled>(_onNavigationHandled);
   }
 
   final AuthRepository _authRepository;
@@ -81,6 +83,14 @@ class NotificationsBloc extends Bloc<NotificationsEvent, NotificationsState> {
     NotificationTapped event,
     Emitter<NotificationsState> emit,
   ) async {
+    NotificationItem? tapped;
+    for (final item in state.notifications) {
+      if (item.id == event.notificationId) {
+        tapped = item;
+        break;
+      }
+    }
+
     final updatedNotifications = state.notifications.map((n) {
       if (n.id == event.notificationId && !n.isRead) {
         return n.copyWith(isRead: true);
@@ -88,7 +98,10 @@ class NotificationsBloc extends Bloc<NotificationsEvent, NotificationsState> {
       return n;
     }).toList();
 
-    emit(state.copyWith(notifications: updatedNotifications));
+    emit(state.copyWith(
+      notifications: updatedNotifications,
+      navigation: () => _resolveNavigation(tapped),
+    ));
 
     final result =
         await _projectRepository.markNotificationRead(notificationId: event.notificationId);
@@ -97,7 +110,13 @@ class NotificationsBloc extends Bloc<NotificationsEvent, NotificationsState> {
       (_) {},
     );
 
-    // TODO: Navigate based on notification type
+  }
+
+  void _onNavigationHandled(
+    NotificationsNavigationHandled event,
+    Emitter<NotificationsState> emit,
+  ) {
+    emit(state.copyWith(navigation: () => null));
   }
 
   Future<void> _onNotificationDismissed(
@@ -146,7 +165,31 @@ class NotificationsBloc extends Bloc<NotificationsEvent, NotificationsState> {
       type: _mapNotificationType(notification.type),
       createdAt: notification.createdAt,
       isRead: notification.isRead,
+      relatedTaskId: notification.relatedTaskId,
+      relatedProjectId: notification.relatedProjectId,
     );
+  }
+
+  NotificationNavigation? _resolveNavigation(NotificationItem? notification) {
+    if (notification == null) return null;
+
+    switch (notification.type) {
+      case NotificationType.taskAssigned:
+      case NotificationType.taskCompleted:
+      case NotificationType.comment:
+      case NotificationType.mention:
+      case NotificationType.deadline:
+        if (notification.relatedTaskId == null ||
+            notification.relatedTaskId!.isEmpty) {
+          return null;
+        }
+        return NotificationNavigation(
+          route: RouteConstants.taskDetails,
+          argument: notification.relatedTaskId,
+        );
+      case NotificationType.projectInvite:
+        return const NotificationNavigation(route: RouteConstants.dashboard);
+    }
   }
 
   NotificationType _mapNotificationType(AppNotificationType type) {

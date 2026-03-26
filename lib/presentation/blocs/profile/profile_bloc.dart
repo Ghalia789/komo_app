@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../domain/repositories/auth_repository.dart';
 import '../../../domain/repositories/user_repository.dart';
@@ -44,11 +46,30 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     );
   }
 
-  void _onAvatarChanged(
+  Future<void> _onAvatarChanged(
     ProfileAvatarChanged event,
     Emitter<ProfileState> emit,
-  ) {
-    emit(state.copyWith(avatarUrl: () => event.avatarPath));
+  ) async {
+    final imagePath = event.avatarPath;
+    if (imagePath == null || imagePath.isEmpty) return;
+
+    final userResult = await _authRepository.getCurrentUser();
+    await userResult.fold(
+      (failure) async {
+        emit(state.copyWith(errorMessage: () => failure.message));
+      },
+      (user) async {
+        final uploadResult = await _userRepository.uploadAvatar(
+          userId: user.id,
+          imageFile: File(imagePath),
+        );
+
+        uploadResult.fold(
+          (failure) => emit(state.copyWith(errorMessage: () => failure.message)),
+          (url) => emit(state.copyWith(avatarUrl: () => url, errorMessage: () => null)),
+        );
+      },
+    );
   }
 
   Future<void> _onLogoutPressed(

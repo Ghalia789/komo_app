@@ -11,6 +11,16 @@ enum NotificationType {
   projectInvite,
 }
 
+class NotificationNavigation extends Equatable {
+  final String route;
+  final Object? argument;
+
+  const NotificationNavigation({required this.route, this.argument});
+
+  @override
+  List<Object?> get props => [route, argument];
+}
+
 class NotificationItem extends Equatable {
   final String id;
   final String title;
@@ -18,6 +28,8 @@ class NotificationItem extends Equatable {
   final NotificationType type;
   final DateTime createdAt;
   final bool isRead;
+  final String? relatedTaskId;
+  final String? relatedProjectId;
 
   const NotificationItem({
     required this.id,
@@ -26,6 +38,8 @@ class NotificationItem extends Equatable {
     required this.type,
     required this.createdAt,
     this.isRead = false,
+    this.relatedTaskId,
+    this.relatedProjectId,
   });
 
   IconData get icon {
@@ -73,7 +87,11 @@ class NotificationItem extends Equatable {
     return '${createdAt.day}/${createdAt.month}/${createdAt.year}';
   }
 
-  NotificationItem copyWith({bool? isRead}) {
+  NotificationItem copyWith({
+    bool? isRead,
+    String? Function()? relatedTaskId,
+    String? Function()? relatedProjectId,
+  }) {
     return NotificationItem(
       id: id,
       title: title,
@@ -81,11 +99,24 @@ class NotificationItem extends Equatable {
       type: type,
       createdAt: createdAt,
       isRead: isRead ?? this.isRead,
+      relatedTaskId:
+          relatedTaskId != null ? relatedTaskId() : this.relatedTaskId,
+      relatedProjectId:
+          relatedProjectId != null ? relatedProjectId() : this.relatedProjectId,
     );
   }
 
   @override
-  List<Object?> get props => [id, title, message, type, createdAt, isRead];
+  List<Object?> get props => [
+        id,
+        title,
+        message,
+        type,
+        createdAt,
+        isRead,
+        relatedTaskId,
+        relatedProjectId,
+      ];
 
   static List<NotificationItem> getMockData() {
     final now = DateTime.now();
@@ -145,11 +176,13 @@ class NotificationItem extends Equatable {
 class NotificationsState extends Equatable {
   final List<NotificationItem> notifications;
   final bool isLoading;
+  final NotificationNavigation? navigation;
   final String? errorMessage;
 
   const NotificationsState({
     this.notifications = const [],
     this.isLoading = false,
+    this.navigation,
     this.errorMessage,
   });
 
@@ -158,15 +191,17 @@ class NotificationsState extends Equatable {
   NotificationsState copyWith({
     List<NotificationItem>? notifications,
     bool? isLoading,
+    NotificationNavigation? Function()? navigation,
     String? Function()? errorMessage,
   }) {
     return NotificationsState(
       notifications: notifications ?? this.notifications,
       isLoading: isLoading ?? this.isLoading,
+      navigation: navigation != null ? navigation() : this.navigation,
       errorMessage: errorMessage != null ? errorMessage() : this.errorMessage,
     );
   }
 
   @override
-  List<Object?> get props => [notifications, isLoading, errorMessage];
+  List<Object?> get props => [notifications, isLoading, navigation, errorMessage];
 }

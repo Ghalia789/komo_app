@@ -48,7 +48,18 @@ class NotificationsView extends StatelessWidget {
           ),
         ],
       ),
-      body: BlocBuilder<NotificationsBloc, NotificationsState>(
+      body: BlocConsumer<NotificationsBloc, NotificationsState>(
+        listener: (context, state) {
+          final navigation = state.navigation;
+          if (navigation == null) return;
+
+          Navigator.of(context).pushNamed(
+            navigation.route,
+            arguments: navigation.argument,
+          );
+
+          context.read<NotificationsBloc>().add(NotificationsNavigationHandled());
+        },
         builder: (context, state) {
           if (state.isLoading) {
             return const Center(child: CircularProgressIndicator());
