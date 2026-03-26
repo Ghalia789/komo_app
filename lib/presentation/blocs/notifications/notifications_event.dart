@@ -1,3 +1,5 @@
+import '../../../domain/entities/app_notification.dart';
+
 abstract class NotificationsEvent {}
 
 class NotificationsLoadData extends NotificationsEvent {}
@@ -13,3 +15,13 @@ class NotificationDismissed extends NotificationsEvent {
 }
 
 class NotificationsMarkAllRead extends NotificationsEvent {}
+
+class NotificationsStreamUpdated extends NotificationsEvent {
+  final List<AppNotification> notifications;
+  NotificationsStreamUpdated(this.notifications);
+}
+
+class NotificationsStreamFailed extends NotificationsEvent {
+  final String message;
+  NotificationsStreamFailed(this.message);
+}

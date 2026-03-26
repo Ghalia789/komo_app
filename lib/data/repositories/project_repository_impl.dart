@@ -4,9 +4,11 @@ import 'package:dartz/dartz.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/errors/error_mapper.dart';
 import '../../core/errors/failures.dart';
+import '../../domain/entities/app_notification.dart';
 import '../../domain/entities/project.dart';
 import '../../domain/entities/user.dart' as domain_user;
 import '../../domain/repositories/project_repository.dart';
+import '../models/app_notification_model.dart';
 import '../models/project_model.dart';
 import '../models/user_model.dart';
 
@@ -21,6 +23,9 @@ class ProjectRepositoryImpl implements ProjectRepository {
 
   CollectionReference<Map<String, dynamic>> get _usersCol =>
       _firestore.collection(FirebaseConstants.usersCollection);
+
+    CollectionReference<Map<String, dynamic>> get _notificationsCol =>
+      _firestore.collection(FirebaseConstants.notificationsCollection);
 
   // ── helpers ──────────────────────────────────────────────────────────────
 
@@ -317,6 +322,82 @@ class ProjectRepositoryImpl implements ProjectRepository {
       await _projectsCol
           .doc(projectId)
           .update({'updatedAt': DateTime.now()});
+      return const Right(unit);
+    } catch (e) {
+      return Left(ErrorMapper.mapExceptionToFailure(e));
+    }
+  }
+
+  @override
+  Stream<Either<Failure, List<AppNotification>>> watchNotifications({
+    required String userId,
+  }) {
+    return _notificationsCol
+        .where('userId', isEqualTo: userId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map<Either<Failure, List<AppNotification>>>(
+          (snapshot) => Right(
+            snapshot.docs.map((doc) {
+              final data = Map<String, dynamic>.from(doc.data())
+                ..putIfAbsent('id', () => doc.id);
+              return AppNotificationModel.fromJson(data).toDomain();
+            }).toList(),
+          ),
+        )
+        .handleError((Object e) =>
+            Left<Failure, List<AppNotification>>(ErrorMapper.mapExceptionToFailure(e)));
+  }
+
+  @override
+  Future<Either<Failure, Unit>> markNotificationRead({
+    required String notificationId,
+  }) async {
+    try {
+      await _notificationsCol.doc(notificationId).update({
+        'isRead': true,
+        'updatedAt': DateTime.now(),
+      });
+      return const Right(unit);
+    } catch (e) {
+      return Left(ErrorMapper.mapExceptionToFailure(e));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Unit>> markAllNotificationsRead({
+    required String userId,
+  }) async {
+    try {
+      final snapshot = await _notificationsCol
+          .where('userId', isEqualTo: userId)
+          .where('isRead', isEqualTo: false)
+          .get();
+
+      if (snapshot.docs.isEmpty) {
+        return const Right(unit);
+      }
+
+      final batch = _firestore.batch();
+      for (final doc in snapshot.docs) {
+        batch.update(doc.reference, {
+          'isRead': true,
+          'updatedAt': DateTime.now(),
+        });
+      }
+      await batch.commit();
+      return const Right(unit);
+    } catch (e) {
+      return Left(ErrorMapper.mapExceptionToFailure(e));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Unit>> deleteNotification({
+    required String notificationId,
+  }) async {
+    try {
+      await _notificationsCol.doc(notificationId).delete();
       return const Right(unit);
     } catch (e) {
       return Left(ErrorMapper.mapExceptionToFailure(e));

@@ -46,8 +46,7 @@ class CreateTaskBloc extends Bloc<CreateTaskEvent, CreateTaskState> {
     Emitter<CreateTaskState> emit,
   ) async {
     if (_projectRepository == null || _projectId.isEmpty) return;
-    final result = await _projectRepository!
-        .getProjectMembers(projectId: _projectId);
+    final result = await _projectRepository.getProjectMembers(projectId: _projectId);
     result.fold(
       (_) {},
       (members) => emit(state.copyWith(members: members)),

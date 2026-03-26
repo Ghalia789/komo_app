@@ -1,5 +1,6 @@
 import 'package:dartz/dartz.dart';
 import '../../core/errors/failures.dart';
+import '../entities/app_notification.dart';
 import '../entities/project.dart';
 import '../entities/user.dart';
 
@@ -104,5 +105,25 @@ abstract class ProjectRepository {
   /// Updates the last accessed timestamp for a project.
   Future<Either<Failure, Unit>> markProjectAccessed({
     required String projectId,
+  });
+
+  /// Stream of notifications for a user.
+  Stream<Either<Failure, List<AppNotification>>> watchNotifications({
+    required String userId,
+  });
+
+  /// Marks a single notification as read.
+  Future<Either<Failure, Unit>> markNotificationRead({
+    required String notificationId,
+  });
+
+  /// Marks all unread notifications as read for a user.
+  Future<Either<Failure, Unit>> markAllNotificationsRead({
+    required String userId,
+  });
+
+  /// Deletes a single notification.
+  Future<Either<Failure, Unit>> deleteNotification({
+    required String notificationId,
   });
 }

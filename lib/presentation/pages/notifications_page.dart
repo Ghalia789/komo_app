@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/theme/app_colors.dart';
+import '../../domain/repositories/auth_repository.dart';
+import '../../domain/repositories/project_repository.dart';
+import '../../injection.dart';
 import '../blocs/notifications/notifications_bloc_exports.dart';
 
 class NotificationsPage extends StatelessWidget {
@@ -9,7 +12,10 @@ class NotificationsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => NotificationsBloc()..add(NotificationsLoadData()),
+      create: (context) => NotificationsBloc(
+        authRepository: locator<AuthRepository>(),
+        projectRepository: locator<ProjectRepository>(),
+      )..add(NotificationsLoadData()),
       child: const NotificationsView(),
     );
   }

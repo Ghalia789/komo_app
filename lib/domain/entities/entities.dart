@@ -4,3 +4,4 @@ export 'project.dart';
 export 'task.dart';
 export 'subtask.dart';
 export 'comment.dart';
+export 'app_notification.dart';
