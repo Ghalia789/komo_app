@@ -83,7 +83,7 @@ class InviteProjectBloc extends Bloc<InviteProjectEvent, InviteProjectState> {
     final invitesResult =
       await _projectRepository.getPendingInvitations(projectId: event.projectId);
 
-    final members = membersResult.fold((_) => [], (list) => list);
+    final members = membersResult.fold((_) => <domain_user.User>[], (list) => list);
     final pendingInvites = invitesResult.fold((_) => const <PendingInvite>[], _mapPendingInvites);
 
     final teamMembers = _mapTeamMembers(
