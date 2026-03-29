@@ -37,8 +37,138 @@ class DashboardPage extends StatelessWidget {
   }
 }
 
-class DashboardView extends StatelessWidget {
+class DashboardView extends StatefulWidget {
   const DashboardView({super.key});
+
+  @override
+  State<DashboardView> createState() => _DashboardViewState();
+}
+
+class _DashboardViewState extends State<DashboardView> {
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    super.dispose();
+  }
+
+  List<Project> _filterProjects(List<Project> projects) {
+    final query = _searchQuery.trim().toLowerCase();
+    if (query.isEmpty) return projects;
+
+    return projects.where((project) {
+      return project.name.toLowerCase().contains(query) ||
+          project.description.toLowerCase().contains(query);
+    }).toList();
+  }
+
+  Future<void> _showQuickMenu() async {
+    if (!mounted) return;
+    await showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.person_outline),
+                title: const Text('Profile'),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  Navigator.of(context).pushNamed('/profile');
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.notifications_none),
+                title: const Text('Notifications'),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  Navigator.of(context).pushNamed('/notifications');
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.settings_outlined),
+                title: const Text('Settings'),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  Navigator.of(context).pushNamed('/settings');
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _showMoreActions() async {
+    if (!mounted) return;
+    await showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.refresh),
+                title: const Text('Refresh projects'),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  context.read<DashboardBloc>().add(DashboardLoadProjects());
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.add_circle_outline),
+                title: const Text('Create project'),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  Navigator.of(context).pushNamed('/create-project');
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.logout, color: AppColors.error),
+                title: const Text(
+                  'Sign out',
+                  style: TextStyle(color: AppColors.error),
+                ),
+                onTap: () async {
+                  Navigator.pop(sheetContext);
+                  final result = await locator<AuthRepository>().signOut();
+                  result.fold(
+                    (failure) {
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(failure.message)),
+                      );
+                    },
+                    (_) {
+                      if (!mounted) return;
+                      Navigator.of(context).pushNamedAndRemoveUntil(
+                        '/login',
+                        (route) => false,
+                      );
+                    },
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -54,7 +184,7 @@ class DashboardView extends StatelessWidget {
                 children: [
                   IconButton(
                     icon: const Icon(Icons.menu, color: AppColors.textPrimary),
-                    onPressed: () {},
+                    onPressed: _showQuickMenu,
                   ),
                   const Expanded(
                     child: Text(
@@ -69,11 +199,11 @@ class DashboardView extends StatelessWidget {
                   ),
                   IconButton(
                     icon: const Icon(Icons.search, color: AppColors.textPrimary),
-                    onPressed: () {},
+                    onPressed: () => _searchFocusNode.requestFocus(),
                   ),
                   IconButton(
                     icon: const Icon(Icons.more_vert, color: AppColors.textPrimary),
-                    onPressed: () {},
+                    onPressed: _showMoreActions,
                   ),
                 ],
               ),
@@ -84,22 +214,36 @@ class DashboardView extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Container(
                 height: 48,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
                 decoration: BoxDecoration(
                   color: AppColors.surface,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
-                  children: const [
-                    Icon(Icons.search, color: AppColors.textSecondary, size: 20),
-                    SizedBox(width: 12),
-                    Text(
-                      'Search projects...',
-                      style: TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 14,
+                  children: [
+                    const Icon(Icons.search, color: AppColors.textSecondary, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        controller: _searchController,
+                        focusNode: _searchFocusNode,
+                        onChanged: (value) => setState(() => _searchQuery = value),
+                        decoration: const InputDecoration(
+                          hintText: 'Search projects...',
+                          border: InputBorder.none,
+                          isCollapsed: true,
+                        ),
                       ),
                     ),
+                    if (_searchQuery.isNotEmpty)
+                      IconButton(
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() => _searchQuery = '');
+                        },
+                        icon: const Icon(Icons.close, size: 18),
+                        splashRadius: 18,
+                      ),
                   ],
                 ),
               ),
@@ -114,12 +258,28 @@ class DashboardView extends StatelessWidget {
                   if (state.isLoading) {
                     return const Center(child: CircularProgressIndicator());
                   }
+
+                  final filtered = _filterProjects(state.projects);
+                  if (filtered.isEmpty) {
+                    return Center(
+                      child: Text(
+                        _searchQuery.isEmpty
+                            ? 'No projects yet. Tap + to create your first project.'
+                            : 'No project matches "$_searchQuery".',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 14,
+                        ),
+                      ),
+                    );
+                  }
                   
                   return ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: state.projects.length,
+                    itemCount: filtered.length,
                     itemBuilder: (context, index) {
-                      final project = state.projects[index];
+                      final project = filtered[index];
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 12),
                         child: ProjectCard(
