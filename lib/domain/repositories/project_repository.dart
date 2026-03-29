@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 import '../../core/errors/failures.dart';
 import '../entities/app_notification.dart';
 import '../entities/project.dart';
+import '../entities/project_invitation.dart';
 import '../entities/user.dart';
 
 /// Repository interface for project operations.
@@ -78,6 +79,28 @@ abstract class ProjectRepository {
   Future<Either<Failure, Unit>> leaveProject({
     required String projectId,
     required String userId,
+  });
+
+  /// Gets pending invitations for a project.
+  Future<Either<Failure, List<ProjectInvitation>>> getPendingInvitations({
+    required String projectId,
+  });
+
+  /// Creates or updates a pending invitation for an email.
+  Future<Either<Failure, ProjectInvitation>> createPendingInvitation({
+    required String projectId,
+    required String invitedEmail,
+    required String invitedByUserId,
+  });
+
+  /// Updates invitation send timestamp (resend action).
+  Future<Either<Failure, ProjectInvitation>> resendPendingInvitation({
+    required String invitationId,
+  });
+
+  /// Removes a pending invitation.
+  Future<Either<Failure, Unit>> removePendingInvitation({
+    required String invitationId,
   });
 
   /// Stream of project updates.

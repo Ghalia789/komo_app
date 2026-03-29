@@ -56,9 +56,7 @@ class _InviteProjectViewState extends State<InviteProjectView> {
         actions: [
           IconButton(
             icon: const Icon(Icons.more_vert),
-            onPressed: () {
-              // TODO: Show menu options
-            },
+            onPressed: () => _showAppBarMenu(context),
           ),
         ],
       ),
@@ -84,6 +82,10 @@ class _InviteProjectViewState extends State<InviteProjectView> {
           // Clear email field when invite is sent
           if (state.isInviteSent) {
             _emailController.clear();
+          }
+
+          if (state.leaveProjectSuccess) {
+            Navigator.of(context).pop();
           }
         },
         builder: (context, state) {
@@ -222,12 +224,12 @@ class _InviteProjectViewState extends State<InviteProjectView> {
                               email: invite.email,
                               onResend: () {
                                 context.read<InviteProjectBloc>().add(
-                                      InviteResend(invite.email),
+                                      InviteResend(invite.id),
                                     );
                               },
                               onRemove: () {
                                 context.read<InviteProjectBloc>().add(
-                                      InviteRemove(invite.email),
+                                      InviteRemove(invite.id),
                                     );
                               },
                             ),
@@ -267,11 +269,9 @@ class _InviteProjectViewState extends State<InviteProjectView> {
                             email: member.email,
                             role: member.role,
                             imageUrl: member.imageUrl,
-                            onMenuTap: member.role != 'Owner'
+                            onMenuTap: state.isOwner && member.id != state.ownerId
                                 ? () {
-                                    context.read<InviteProjectBloc>().add(
-                                          TeamMemberMenuTapped(member.email),
-                                        );
+                                    _showMemberActions(context, member);
                                   }
                                 : null,
                           ),
@@ -283,29 +283,39 @@ class _InviteProjectViewState extends State<InviteProjectView> {
                 const SizedBox(height: 32),
 
                 // LEAVE PROJECT BUTTON
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () {
-                      _showLeaveProjectDialog(context);
-                    },
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.error,
-                      side: const BorderSide(color: AppColors.error),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                if (!state.isOwner)
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: () {
+                        _showLeaveProjectDialog(context);
+                      },
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.error,
+                        side: const BorderSide(color: AppColors.error),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        'Leave Project',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
-                    child: const Text(
-                      'Leave Project',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
+                  )
+                else
+                  const Text(
+                    'You are the project owner. Only members can leave the project.',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textSecondary,
                     ),
+                    textAlign: TextAlign.center,
                   ),
-                ),
 
                 const SizedBox(height: 24),
               ],
@@ -313,6 +323,75 @@ class _InviteProjectViewState extends State<InviteProjectView> {
           );
         },
       ),
+    );
+  }
+
+  Future<void> _showAppBarMenu(BuildContext context) async {
+    final state = context.read<InviteProjectBloc>().state;
+    await showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.refresh),
+                title: const Text('Refresh members'),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  context.read<InviteProjectBloc>().add(InviteProjectRefreshRequested());
+                },
+              ),
+              if (!state.isOwner)
+                ListTile(
+                  leading: const Icon(Icons.exit_to_app, color: AppColors.error),
+                  title: const Text(
+                    'Leave project',
+                    style: TextStyle(color: AppColors.error),
+                  ),
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    _showLeaveProjectDialog(context);
+                  },
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _showMemberActions(BuildContext context, TeamMember member) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.person_remove, color: AppColors.error),
+                title: Text(
+                  'Remove ${member.name}',
+                  style: const TextStyle(color: AppColors.error),
+                ),
+                subtitle: const Text('They can be re-invited later'),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  context.read<InviteProjectBloc>().add(InviteMemberRemoved(member.id));
+                },
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -333,7 +412,6 @@ class _InviteProjectViewState extends State<InviteProjectView> {
             onPressed: () {
               Navigator.of(dialogContext).pop();
               context.read<InviteProjectBloc>().add(LeaveProjectPressed());
-              Navigator.of(context).pop();
             },
             style: TextButton.styleFrom(
               foregroundColor: AppColors.error,

@@ -6,6 +6,10 @@ admin.initializeApp();
 
 const db = admin.firestore();
 const RESET_CODES_COLLECTION = 'resetCodes';
+const INVITATIONS_COLLECTION = 'invitations';
+const PROJECTS_COLLECTION = 'projects';
+const INVITATION_STATUS_PENDING = 'pending';
+const INVITATION_STATUS_ACCEPTED = 'accepted';
 const CODE_TTL_MINUTES = 10;
 const RESEND_COOLDOWN_SECONDS = 60;
 const MAX_ATTEMPTS = 3;
@@ -21,6 +25,10 @@ function isValidEmail(email) {
 
 function isValidPassword(password) {
   return typeof password === 'string' && password.length >= 8;
+}
+
+function normalizeEmail(email) {
+  return typeof email === 'string' ? email.trim().toLowerCase() : '';
 }
 
 function buildEmailHtml(code) {
@@ -210,3 +218,66 @@ exports.cleanupExpiredResetCodes = functions.pubsub
     await batch.commit();
     return null;
   });
+
+exports.processPendingInvitationsOnUserCreate = functions.auth.user().onCreate(async (user) => {
+  const email = normalizeEmail(user.email);
+  if (!email) {
+    return null;
+  }
+
+  const pendingInvites = await db
+    .collection(INVITATIONS_COLLECTION)
+    .where('invitedEmail', '==', email)
+    .where('status', '==', INVITATION_STATUS_PENDING)
+    .limit(100)
+    .get();
+
+  if (pendingInvites.empty) {
+    return null;
+  }
+
+  const now = admin.firestore.Timestamp.now();
+
+  for (const inviteDoc of pendingInvites.docs) {
+    const invitation = inviteDoc.data();
+    const projectId = invitation.projectId;
+    if (!projectId) {
+      await inviteDoc.ref.update({
+        status: 'invalid',
+        updatedAt: now,
+      });
+      continue;
+    }
+
+    const projectRef = db.collection(PROJECTS_COLLECTION).doc(projectId);
+
+    try {
+      await db.runTransaction(async (tx) => {
+        const projectSnap = await tx.get(projectRef);
+        if (!projectSnap.exists) {
+          tx.update(inviteDoc.ref, {
+            status: 'invalid',
+            updatedAt: now,
+          });
+          return;
+        }
+
+        tx.update(projectRef, {
+          memberIds: admin.firestore.FieldValue.arrayUnion(user.uid),
+          updatedAt: now,
+        });
+
+        tx.update(inviteDoc.ref, {
+          status: INVITATION_STATUS_ACCEPTED,
+          invitedUserId: user.uid,
+          acceptedAt: now,
+          updatedAt: now,
+        });
+      });
+    } catch (error) {
+      console.error('Failed to process invitation', inviteDoc.id, error);
+    }
+  }
+
+  return null;
+});

@@ -6,10 +6,12 @@ import '../../core/errors/error_mapper.dart';
 import '../../core/errors/failures.dart';
 import '../../domain/entities/app_notification.dart';
 import '../../domain/entities/project.dart';
+import '../../domain/entities/project_invitation.dart';
 import '../../domain/entities/user.dart' as domain_user;
 import '../../domain/repositories/project_repository.dart';
 import '../models/app_notification_model.dart';
 import '../models/project_model.dart';
+import '../models/project_invitation_model.dart';
 import '../models/user_model.dart';
 
 class ProjectRepositoryImpl implements ProjectRepository {
@@ -26,6 +28,9 @@ class ProjectRepositoryImpl implements ProjectRepository {
 
   CollectionReference<Map<String, dynamic>> get _notificationsCol =>
       _firestore.collection(FirebaseConstants.notificationsCollection);
+
+  CollectionReference<Map<String, dynamic>> get _invitationsCol =>
+      _firestore.collection(FirebaseConstants.invitationsCollection);
 
   // ── helpers ──────────────────────────────────────────────────────────────
 
@@ -55,14 +60,15 @@ class ProjectRepositoryImpl implements ProjectRepository {
     return users;
   }
 
-  Future<List<String>> _emailsToUserIds(List<String> emails) async {
-    final ids = <String>[];
+  Future<Map<String, String>> _emailsToUserIdsMap(List<String> emails) async {
+    final ids = <String, String>{};
     for (final email in emails) {
+      final normalizedEmail = email.trim().toLowerCase();
       final snap = await _usersCol
-          .where('email', isEqualTo: email.trim().toLowerCase())
+          .where('email', isEqualTo: normalizedEmail)
           .limit(1)
           .get();
-      if (snap.docs.isNotEmpty) ids.add(snap.docs.first.id);
+      if (snap.docs.isNotEmpty) ids[normalizedEmail] = snap.docs.first.id;
     }
     return ids;
   }
@@ -199,16 +205,41 @@ class ProjectRepositoryImpl implements ProjectRepository {
       return const Left(ValidationFailure(message: 'No emails provided'));
     }
     try {
-      final ids = await _emailsToUserIds(userEmails);
+      final emailToUserId = await _emailsToUserIdsMap(userEmails);
+      final ids = emailToUserId.values.toSet().toList();
+
       if (ids.isEmpty) {
         return const Left(
             NotFoundFailure(message: 'No users found for the provided emails'));
       }
+
+      final now = DateTime.now();
       final docRef = _projectsCol.doc(projectId);
       await docRef.update({
         'memberIds': FieldValue.arrayUnion(ids),
-        'updatedAt': DateTime.now(),
+        'updatedAt': now,
       });
+
+      // Resolve matching pending invitations once users exist and are added.
+      final batch = _firestore.batch();
+      for (final entry in emailToUserId.entries) {
+        final pending = await _invitationsCol
+            .where('projectId', isEqualTo: projectId)
+            .where('invitedEmail', isEqualTo: entry.key)
+            .where('status', isEqualTo: 'pending')
+            .get();
+
+        for (final doc in pending.docs) {
+          batch.update(doc.reference, {
+            'status': 'accepted',
+            'invitedUserId': entry.value,
+            'acceptedAt': now,
+            'updatedAt': now,
+          });
+        }
+      }
+      await batch.commit();
+
       final snap = await docRef.get();
       if (!snap.exists || snap.data() == null) {
         return const Left(NotFoundFailure(message: 'Project not found'));
@@ -266,6 +297,115 @@ class ProjectRepositoryImpl implements ProjectRepository {
         'memberIds': FieldValue.arrayRemove([userId]),
         'updatedAt': DateTime.now(),
       });
+      return const Right(unit);
+    } catch (e) {
+      return Left(ErrorMapper.mapExceptionToFailure(e));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<ProjectInvitation>>> getPendingInvitations({
+    required String projectId,
+  }) async {
+    try {
+      final snap = await _invitationsCol
+          .where('projectId', isEqualTo: projectId)
+          .where('status', isEqualTo: 'pending')
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      final invites = snap.docs.map((doc) {
+        final data = Map<String, dynamic>.from(doc.data())
+          ..putIfAbsent('id', () => doc.id);
+        return ProjectInvitationModel.fromJson(data).toDomain();
+      }).toList();
+
+      return Right(invites);
+    } catch (e) {
+      return Left(ErrorMapper.mapExceptionToFailure(e));
+    }
+  }
+
+  @override
+  Future<Either<Failure, ProjectInvitation>> createPendingInvitation({
+    required String projectId,
+    required String invitedEmail,
+    required String invitedByUserId,
+  }) async {
+    try {
+      final normalizedEmail = invitedEmail.trim().toLowerCase();
+      final now = DateTime.now();
+
+      final existing = await _invitationsCol
+          .where('projectId', isEqualTo: projectId)
+          .where('invitedEmail', isEqualTo: normalizedEmail)
+          .where('status', isEqualTo: 'pending')
+          .limit(1)
+          .get();
+
+      if (existing.docs.isNotEmpty) {
+        final ref = existing.docs.first.reference;
+        await ref.update({
+          'lastSentAt': now,
+          'updatedAt': now,
+        });
+        final updated = await ref.get();
+        final data = Map<String, dynamic>.from(updated.data() ?? {})
+          ..putIfAbsent('id', () => updated.id);
+        return Right(ProjectInvitationModel.fromJson(data).toDomain());
+      }
+
+      final docRef = _invitationsCol.doc();
+      final model = ProjectInvitationModel(
+        id: docRef.id,
+        projectId: projectId,
+        invitedEmail: normalizedEmail,
+        invitedByUserId: invitedByUserId,
+        status: 'pending',
+        createdAt: now,
+        updatedAt: now,
+        lastSentAt: now,
+      );
+
+      await docRef.set(model.toJson());
+      return Right(model.toDomain());
+    } catch (e) {
+      return Left(ErrorMapper.mapExceptionToFailure(e));
+    }
+  }
+
+  @override
+  Future<Either<Failure, ProjectInvitation>> resendPendingInvitation({
+    required String invitationId,
+  }) async {
+    try {
+      final now = DateTime.now();
+      final docRef = _invitationsCol.doc(invitationId);
+      final snap = await docRef.get();
+      if (!snap.exists || snap.data() == null) {
+        return const Left(NotFoundFailure(message: 'Invitation not found'));
+      }
+
+      await docRef.update({
+        'lastSentAt': now,
+        'updatedAt': now,
+      });
+
+      final updated = await docRef.get();
+      final data = Map<String, dynamic>.from(updated.data() ?? {})
+        ..putIfAbsent('id', () => updated.id);
+      return Right(ProjectInvitationModel.fromJson(data).toDomain());
+    } catch (e) {
+      return Left(ErrorMapper.mapExceptionToFailure(e));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Unit>> removePendingInvitation({
+    required String invitationId,
+  }) async {
+    try {
+      await _invitationsCol.doc(invitationId).delete();
       return const Right(unit);
     } catch (e) {
       return Left(ErrorMapper.mapExceptionToFailure(e));

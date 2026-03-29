@@ -80,6 +80,12 @@ service cloud.firestore {
       allow create: if isNotificationRecipientOnCreate() || isValidProjectNotificationCreate();
     }
 
+    // Project invitations are managed by project members.
+    match /invitations/{invitationId} {
+      allow read, update, delete: if isProjectMember(resource.data.projectId);
+      allow create: if isSignedIn() && isProjectMember(request.resource.data.projectId);
+    }
+
     // Password reset codes are only for Admin SDK/Cloud Functions.
     match /resetCodes/{docId} {
       allow read, write: if false;
