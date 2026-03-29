@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../domain/entities/subtask.dart';
 import '../../../domain/entities/task.dart';
 import '../../../domain/repositories/project_repository.dart';
 import '../../../domain/repositories/task_repository.dart';
@@ -189,15 +190,42 @@ class CreateTaskBloc extends Bloc<CreateTaskEvent, CreateTaskState> {
     );
 
     final result = await _taskRepository.createTask(task: task);
-    result.fold(
-      (failure) => emit(state.copyWith(
+    await result.fold(
+      (failure) async => emit(state.copyWith(
         isLoading: false,
         errorMessage: () => failure.message,
       )),
-      (_) => emit(state.copyWith(
-        isLoading: false,
-        isSuccess: true,
-      )),
+      (createdTask) async {
+        // Persist each entered subtask for the created task.
+        for (var i = 0; i < state.subtasks.length; i++) {
+          final title = state.subtasks[i].trim();
+          if (title.isEmpty) continue;
+
+          final subtask = Subtask(
+            id: '',
+            taskId: createdTask.id,
+            title: title,
+            isCompleted: false,
+            order: i,
+            createdAt: DateTime.now(),
+          );
+
+          final subtaskResult = await _taskRepository.createSubtask(subtask: subtask);
+          if (subtaskResult.isLeft()) {
+            final failure = subtaskResult.fold((f) => f, (_) => null);
+            emit(state.copyWith(
+              isLoading: false,
+              errorMessage: () => failure?.message ?? 'Failed to create subtask',
+            ));
+            return;
+          }
+        }
+
+        emit(state.copyWith(
+          isLoading: false,
+          isSuccess: true,
+        ));
+      },
     );
   }
 

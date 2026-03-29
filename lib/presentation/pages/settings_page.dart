@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/theme_mode_controller.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../domain/repositories/user_repository.dart';
 import '../../injection.dart';
@@ -104,9 +105,10 @@ class SettingsView extends StatelessWidget {
                     title: 'Dark Mode',
                     subtitle: 'Switch to dark theme',
                     value: state.darkMode,
-                    onChanged: (val) => context
-                        .read<SettingsBloc>()
-                        .add(SettingsDarkModeChanged(val)),
+                    onChanged: (val) {
+                      context.read<SettingsBloc>().add(SettingsDarkModeChanged(val));
+                      ThemeModeController.setDarkMode(val);
+                    },
                   ),
                   _buildDivider(),
                   _buildSelectTile(

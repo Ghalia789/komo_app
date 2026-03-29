@@ -58,7 +58,9 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
         prefs.getBool(_emailNotificationsKey) ?? state.emailNotifications;
     final taskReminders =
         prefs.getBool(_taskRemindersKey) ?? state.taskReminders;
-    final darkMode = prefs.getBool(_darkModeKey) ?? state.darkMode;
+    final darkMode =
+      (prefs.getString(StorageKeys.themeMode) == 'dark') ||
+        (prefs.getBool(_darkModeKey) ?? state.darkMode);
     final language = prefs.getString(StorageKeys.language) ?? state.language;
 
     final cacheSize = _estimateCacheSizeMb(prefs);
@@ -104,6 +106,7 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
   ) {
     emit(state.copyWith(darkMode: event.value));
     _saveBool(_darkModeKey, event.value);
+    _saveString(StorageKeys.themeMode, event.value ? 'dark' : 'light');
   }
 
   void _onLanguageChanged(
