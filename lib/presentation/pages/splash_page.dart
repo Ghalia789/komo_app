@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../core/constants/app_constants.dart';
 import '../../core/theme/app_colors.dart';
 import '../widgets/widgets.dart';
 
@@ -33,12 +36,20 @@ class _SplashPageState extends State<SplashPage>
 
     _controller.forward();
 
-    // Navigate to onboarding after 2.5 seconds
+    // Resolve first-launch destination after the splash animation.
     Future.delayed(const Duration(milliseconds: 2500), () {
-      if (mounted) {
-        Navigator.of(context).pushReplacementNamed('/onboarding');
-      }
+      _navigateAfterSplash();
     });
+  }
+
+  Future<void> _navigateAfterSplash() async {
+    final prefs = await SharedPreferences.getInstance();
+    final isFirstLaunch = prefs.getBool(StorageKeys.isFirstLaunch) ?? true;
+    if (!mounted) return;
+
+    Navigator.of(context).pushReplacementNamed(
+      isFirstLaunch ? RouteConstants.onboarding : RouteConstants.login,
+    );
   }
 
   @override

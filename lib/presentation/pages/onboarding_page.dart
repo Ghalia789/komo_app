@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../core/constants/app_constants.dart';
 import '../../core/theme/app_colors.dart';
 import '../blocs/blocs.dart';
 
@@ -50,6 +53,11 @@ class _OnboardingViewState extends State<OnboardingView> {
     super.dispose();
   }
 
+  Future<void> _completeOnboarding() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(StorageKeys.isFirstLaunch, false);
+  }
+
   void _animateToPage(int page) {
     _pageController.animateToPage(
       page,
@@ -78,9 +86,12 @@ class _OnboardingViewState extends State<OnboardingView> {
                     child: Padding(
                       padding: const EdgeInsets.all(16),
                       child: GestureDetector(
-                        onTap: () {
+                        onTap: () async {
                           context.read<OnboardingBloc>().add(OnboardingSkipPressed());
-                          Navigator.of(context).pushReplacementNamed('/signup');
+                          await _completeOnboarding();
+                          if (!mounted) return;
+                          Navigator.of(context)
+                              .pushReplacementNamed(RouteConstants.signup);
                         },
                         child: Text(
                           'Skip',
@@ -189,9 +200,12 @@ class _OnboardingViewState extends State<OnboardingView> {
                           width: 120,
                           height: 44,
                           child: ElevatedButton(
-                            onPressed: () {
+                            onPressed: () async {
                               context.read<OnboardingBloc>().add(OnboardingGetStartedPressed());
-                              Navigator.of(context).pushReplacementNamed('/signup');
+                              await _completeOnboarding();
+                              if (!mounted) return;
+                              Navigator.of(context)
+                                  .pushReplacementNamed(RouteConstants.signup);
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.primaryDark, // Dark purple
@@ -221,9 +235,12 @@ class _OnboardingViewState extends State<OnboardingView> {
                         const SizedBox(height: 16),
                         // Login link
                         GestureDetector(
-                          onTap: () {
+                          onTap: () async {
                             context.read<OnboardingBloc>().add(OnboardingLoginPressed());
-                            Navigator.of(context).pushReplacementNamed('/login');
+                            await _completeOnboarding();
+                            if (!mounted) return;
+                            Navigator.of(context)
+                                .pushReplacementNamed(RouteConstants.login);
                           },
                           child: Text(
                             'I already have an account',
