@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter/services.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/theme_mode_controller.dart';
 import '../../domain/repositories/auth_repository.dart';
@@ -129,19 +132,25 @@ class SettingsView extends StatelessWidget {
                   _buildActionTile(
                     icon: Icons.lock_outline,
                     title: 'Change Password',
-                    onTap: () {},
+                    onTap: () => _sendPasswordResetCode(context),
                   ),
                   _buildDivider(),
                   _buildActionTile(
                     icon: Icons.fingerprint,
                     title: 'Biometric Login',
-                    onTap: () {},
+                    onTap: () => _showFeaturePlanned(
+                      context,
+                      'Biometric login setup is coming soon.',
+                    ),
                   ),
                   _buildDivider(),
                   _buildActionTile(
                     icon: Icons.security_outlined,
                     title: 'Two-Factor Authentication',
-                    onTap: () {},
+                    onTap: () => _showFeaturePlanned(
+                      context,
+                      'Two-factor authentication setup is coming soon.',
+                    ),
                   ),
                 ]),
 
@@ -154,7 +163,7 @@ class SettingsView extends StatelessWidget {
                   _buildActionTile(
                     icon: Icons.download_outlined,
                     title: 'Export Data',
-                    onTap: () {},
+                    onTap: () => _exportDataToClipboard(context),
                   ),
                   _buildDivider(),
                   _buildActionTile(
@@ -510,6 +519,59 @@ class SettingsView extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _sendPasswordResetCode(BuildContext context) async {
+    final userRepository = locator<UserRepository>();
+    final authRepository = locator<AuthRepository>();
+
+    final userResult = await userRepository.getCurrentUserProfile();
+    await userResult.fold(
+      (failure) async => _showFeaturePlanned(context, failure.message),
+      (user) async {
+        final resetResult =
+            await authRepository.sendPasswordResetCode(email: user.email);
+        resetResult.fold(
+          (failure) => _showFeaturePlanned(context, failure.message),
+          (_) => _showFeaturePlanned(context, 'Reset code sent to ${user.email}'),
+        );
+      },
+    );
+  }
+
+  Future<void> _exportDataToClipboard(BuildContext context) async {
+    final userRepository = locator<UserRepository>();
+    final result = await userRepository.getCurrentUserProfile();
+
+    await result.fold(
+      (failure) async => _showFeaturePlanned(context, failure.message),
+      (user) async {
+        final payload = {
+          'id': user.id,
+          'email': user.email,
+          'name': user.name,
+          'jobTitle': user.jobTitle,
+          'company': user.company,
+          'role': user.role,
+          'avatarUrl': user.avatarUrl,
+          'createdAt': user.createdAt.toIso8601String(),
+          'updatedAt': user.updatedAt?.toIso8601String(),
+        };
+
+        final prettyJson = const JsonEncoder.withIndent('  ').convert(payload);
+        await Clipboard.setData(ClipboardData(text: prettyJson));
+        _showFeaturePlanned(
+          context,
+          'Your profile data JSON has been copied to clipboard.',
+        );
+      },
+    );
+  }
+
+  void _showFeaturePlanned(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
     );
   }
 }

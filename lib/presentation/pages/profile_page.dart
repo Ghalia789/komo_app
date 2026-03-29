@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/theme/app_colors.dart';
+import '../../domain/repositories/auth_repository.dart';
 import '../../injection.dart';
 import '../blocs/profile/profile_bloc_exports.dart';
 import '../widgets/widgets.dart';
@@ -100,12 +102,12 @@ class ProfileView extends StatelessWidget {
                     _buildOptionTile(
                       icon: Icons.lock_outline,
                       title: 'Change Password',
-                      onTap: () {},
+                      onTap: () => _sendPasswordResetCode(context, state),
                     ),
                     _buildOptionTile(
                       icon: Icons.email_outlined,
                       title: 'Email Preferences',
-                      onTap: () {},
+                      onTap: () => Navigator.pushNamed(context, RouteConstants.settings),
                     ),
                   ],
                 ),
@@ -118,18 +120,26 @@ class ProfileView extends StatelessWidget {
                       icon: Icons.people_outline,
                       title: 'Team Members',
                       subtitle: '${state.teamMembersCount} members',
-                      onTap: () {},
+                      onTap: () => Navigator.pushNamedAndRemoveUntil(
+                        context,
+                        RouteConstants.dashboard,
+                        (route) => false,
+                      ),
                     ),
                     _buildOptionTile(
                       icon: Icons.folder_outlined,
                       title: 'My Projects',
                       subtitle: '${state.activeProjectsCount} active projects',
-                      onTap: () {},
+                      onTap: () => Navigator.pushNamedAndRemoveUntil(
+                        context,
+                        RouteConstants.dashboard,
+                        (route) => false,
+                      ),
                     ),
                     _buildOptionTile(
                       icon: Icons.archive_outlined,
                       title: 'Archived Tasks',
-                      onTap: () {},
+                      onTap: () => _showInfo(context, 'Archived tasks are coming soon.'),
                     ),
                   ],
                 ),
@@ -141,17 +151,17 @@ class ProfileView extends StatelessWidget {
                     _buildOptionTile(
                       icon: Icons.help_outline,
                       title: 'Help Center',
-                      onTap: () {},
+                      onTap: () => _showHelpCenter(context),
                     ),
                     _buildOptionTile(
                       icon: Icons.feedback_outlined,
                       title: 'Send Feedback',
-                      onTap: () {},
+                      onTap: () => _copySupportEmail(context),
                     ),
                     _buildOptionTile(
                       icon: Icons.info_outline,
                       title: 'About Komo',
-                      onTap: () {},
+                      onTap: () => _showAboutKomo(context),
                     ),
                   ],
                 ),
@@ -275,6 +285,62 @@ class ProfileView extends StatelessWidget {
     if (!context.mounted || image == null) return;
 
     context.read<ProfileBloc>().add(ProfileAvatarChanged(image.path));
+  }
+
+  Future<void> _sendPasswordResetCode(
+    BuildContext context,
+    ProfileState state,
+  ) async {
+    final email = state.email.trim();
+    if (email.isEmpty) {
+      _showInfo(context, 'No email found on your profile.');
+      return;
+    }
+
+    final authRepository = locator<AuthRepository>();
+    final result = await authRepository.sendPasswordResetCode(email: email);
+    result.fold(
+      (failure) => _showInfo(context, failure.message),
+      (_) => _showInfo(context, 'Reset code sent to $email'),
+    );
+  }
+
+  Future<void> _copySupportEmail(BuildContext context) async {
+    const supportEmail = 'support@komo.app';
+    await Clipboard.setData(const ClipboardData(text: supportEmail));
+    _showInfo(context, 'Support email copied: $supportEmail');
+  }
+
+  void _showHelpCenter(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Help Center'),
+        content: const Text(
+          'For account or workspace help, contact support@komo.app.\n\n'
+          'Tip: You can also reset your password directly from Profile.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAboutKomo(BuildContext context) {
+    showAboutDialog(
+      context: context,
+      applicationName: AppConstants.appName,
+      applicationVersion: AppConstants.appVersion,
+      applicationLegalese: 'KOMO collaborative workspace app.',
+    );
+  }
+
+  void _showInfo(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Widget _buildStatsRow(ProfileState state) {
