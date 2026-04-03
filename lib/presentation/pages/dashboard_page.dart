@@ -343,6 +343,7 @@ class ProjectCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = _projectColor(project.color);
+    final memberAvatars = project.memberAvatars.take(3).toList();
     return KomoCard(
       leftBorderColor: color,
       onTap: onTap,
@@ -395,37 +396,24 @@ class ProjectCard extends StatelessWidget {
                 
                 const SizedBox(width: 12),
                 
-                // OVERLAPPING AVATARS using KomoAvatar
+                // OVERLAPPING MEMBER AVATARS
                 SizedBox(
                   width: 80,
                   height: 28,
                   child: Stack(
                     alignment: Alignment.centerRight,
                     children: [
-                      // Avatar 3 (back)
-                      Positioned(
-                        right: 0,
-                        child: _OverlappingAvatar(
-                          color: const Color(0xFF7D627F),
-                          borderColor: AppColors.surface,
+                      for (var index = 0; index < 3; index++)
+                        Positioned(
+                          right: index * 16,
+                          child: _OverlappingMemberAvatar(
+                            imageUrl: index < memberAvatars.length
+                                ? memberAvatars[index]
+                                : null,
+                            fallbackColor: color,
+                            borderColor: AppColors.surface,
+                          ),
                         ),
-                      ),
-                      // Avatar 2 (middle)
-                      Positioned(
-                        right: 16,
-                        child: _OverlappingAvatar(
-                          color: const Color(0xFFB85C6E),
-                          borderColor: AppColors.surface,
-                        ),
-                      ),
-                      // Avatar 1 (front) - project color
-                      Positioned(
-                        right: 32,
-                        child: _OverlappingAvatar(
-                          color: _projectColor(project.color),
-                          borderColor: AppColors.surface,
-                        ),
-                      ),
                     ],
                   ),
                 ),
@@ -438,13 +426,15 @@ class ProjectCard extends StatelessWidget {
   }
 }
 
-// OVERLAPPING AVATAR - Simple circle for dashboard
-class _OverlappingAvatar extends StatelessWidget {
-  final Color color;
+// OVERLAPPING MEMBER AVATAR for dashboard project cards.
+class _OverlappingMemberAvatar extends StatelessWidget {
+  final String? imageUrl;
+  final Color fallbackColor;
   final Color borderColor;
 
-  const _OverlappingAvatar({
-    required this.color,
+  const _OverlappingMemberAvatar({
+    this.imageUrl,
+    required this.fallbackColor,
     required this.borderColor,
   });
 
@@ -455,8 +445,32 @@ class _OverlappingAvatar extends StatelessWidget {
       height: 28,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: color,
         border: Border.all(color: borderColor, width: 2),
+      ),
+      child: ClipOval(
+        child: imageUrl != null && imageUrl!.trim().isNotEmpty
+            ? Image.network(
+                imageUrl!,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) {
+                  return Container(
+                    color: fallbackColor,
+                    child: const Icon(
+                      Icons.person,
+                      size: 14,
+                      color: Colors.white,
+                    ),
+                  );
+                },
+              )
+            : Container(
+                color: fallbackColor,
+                child: const Icon(
+                  Icons.person,
+                  size: 14,
+                  color: Colors.white,
+                ),
+              ),
       ),
     );
   }

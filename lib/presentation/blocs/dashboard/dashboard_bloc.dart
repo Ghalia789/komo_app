@@ -22,6 +22,22 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
   final AuthRepository _authRepository;
   final ProjectRepository _projectRepository;
 
+  Future<List<String>> _loadMemberAvatarsForProject(String projectId) async {
+    final membersResult =
+        await _projectRepository.getProjectMembers(projectId: projectId);
+
+    return membersResult.fold(
+      (_) => const <String>[],
+      (members) => members
+          .map((member) => member.avatarUrl)
+          .whereType<String>()
+          .map((url) => url.trim())
+          .where((url) => url.isNotEmpty)
+          .toSet()
+          .toList(),
+    );
+  }
+
   Future<void> _onLoadProjects(
     DashboardLoadProjects event,
     Emitter<DashboardState> emit,
@@ -39,16 +55,28 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
       (user) async {
         final result =
             await _projectRepository.getProjects(userId: user.id);
-        result.fold(
-          (failure) => emit(state.copyWith(
+        final failure = result.fold((f) => f, (_) => null);
+        if (failure != null) {
+          emit(state.copyWith(
             isLoading: false,
             errorMessage: () => failure.message,
-          )),
-          (projects) => emit(state.copyWith(
-            isLoading: false,
-            projects: projects,
-          )),
+          ));
+          return;
+        }
+
+        final projects = result.getOrElse(() => const []);
+        final enrichedProjects = await Future.wait(
+          projects.map((project) async {
+            final avatars =
+                await _loadMemberAvatarsForProject(project.id);
+            return project.copyWith(memberAvatars: avatars);
+          }),
         );
+
+        emit(state.copyWith(
+          isLoading: false,
+          projects: enrichedProjects,
+        ));
       },
     );
   }
