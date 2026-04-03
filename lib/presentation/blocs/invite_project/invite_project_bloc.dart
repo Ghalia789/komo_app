@@ -75,7 +75,14 @@ class InviteProjectBloc extends Bloc<InviteProjectEvent, InviteProjectState> {
       return;
     }
 
-    final project = projectResult.getOrElse(() => throw Exception());
+    final project = projectResult.fold((_) => null, (p) => p);
+    if (project == null) {
+      emit(state.copyWith(
+        isLoading: false,
+        errorMessage: () => 'Project not found',
+      ));
+      return;
+    }
     final currentUserResult = await _userRepository.getCurrentUserProfile();
     final currentUserId = currentUserResult.fold((_) => '', (u) => u.id);
     final membersResult =
@@ -128,7 +135,14 @@ class InviteProjectBloc extends Bloc<InviteProjectEvent, InviteProjectState> {
       return;
     }
 
-    final project = projectResult.getOrElse(() => throw Exception());
+    final project = projectResult.fold((_) => null, (p) => p);
+    if (project == null) {
+      emit(state.copyWith(
+        isLoading: false,
+        errorMessage: () => 'Project not found',
+      ));
+      return;
+    }
     final members = membersResult.fold((_) => <domain_user.User>[], (list) => list);
     final teamMembers = members.isEmpty
         ? state.teamMembers

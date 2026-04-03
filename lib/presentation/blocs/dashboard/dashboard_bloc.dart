@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../domain/repositories/auth_repository.dart';
 import '../../../domain/repositories/project_repository.dart';
@@ -12,6 +14,8 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
         _projectRepository = projectRepository,
         super(const DashboardState()) {
     on<DashboardLoadProjects>(_onLoadProjects);
+    on<DashboardProjectsStreamUpdated>(_onProjectsStreamUpdated);
+    on<DashboardProjectsStreamFailed>(_onProjectsStreamFailed);
     on<DashboardProjectSelected>(_onProjectSelected);
     on<DashboardCreateProjectPressed>(_onCreateProjectPressed);
     on<DashboardProfilePressed>(_onProfilePressed);
@@ -21,6 +25,7 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
 
   final AuthRepository _authRepository;
   final ProjectRepository _projectRepository;
+  StreamSubscription? _projectsSubscription;
 
   Future<List<String>> _loadMemberAvatarsForProject(String projectId) async {
     final membersResult =
@@ -44,6 +49,9 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
   ) async {
     emit(state.copyWith(isLoading: true, errorMessage: () => null));
 
+    await _projectsSubscription?.cancel();
+    _projectsSubscription = null;
+
     final userResult = await _authRepository.getCurrentUser();
     await userResult.fold(
       (failure) async {
@@ -53,32 +61,44 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
         ));
       },
       (user) async {
-        final result =
-            await _projectRepository.getProjects(userId: user.id);
-        final failure = result.fold((f) => f, (_) => null);
-        if (failure != null) {
-          emit(state.copyWith(
-            isLoading: false,
-            errorMessage: () => failure.message,
-          ));
-          return;
-        }
-
-        final projects = result.getOrElse(() => const []);
-        final enrichedProjects = await Future.wait(
-          projects.map((project) async {
-            final avatars =
-                await _loadMemberAvatarsForProject(project.id);
-            return project.copyWith(memberAvatars: avatars);
-          }),
-        );
-
-        emit(state.copyWith(
-          isLoading: false,
-          projects: enrichedProjects,
-        ));
+        _projectsSubscription = _projectRepository
+            .watchProjects(userId: user.id)
+            .listen((result) {
+          result.fold(
+            (failure) => add(DashboardProjectsStreamFailed(failure.message)),
+            (projects) => add(DashboardProjectsStreamUpdated(projects)),
+          );
+        });
       },
     );
+  }
+
+  Future<void> _onProjectsStreamUpdated(
+    DashboardProjectsStreamUpdated event,
+    Emitter<DashboardState> emit,
+  ) async {
+    final enrichedProjects = await Future.wait(
+      event.projects.map((project) async {
+        final avatars = await _loadMemberAvatarsForProject(project.id);
+        return project.copyWith(memberAvatars: avatars);
+      }),
+    );
+
+    emit(state.copyWith(
+      isLoading: false,
+      projects: enrichedProjects,
+      errorMessage: () => null,
+    ));
+  }
+
+  void _onProjectsStreamFailed(
+    DashboardProjectsStreamFailed event,
+    Emitter<DashboardState> emit,
+  ) {
+    emit(state.copyWith(
+      isLoading: false,
+      errorMessage: () => event.message,
+    ));
   }
 
   void _onProjectSelected(
@@ -97,4 +117,10 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
       DashboardNotificationsPressed event, Emitter<DashboardState> emit) {}
   void _onSettingsPressed(
       DashboardSettingsPressed event, Emitter<DashboardState> emit) {}
+
+  @override
+  Future<void> close() async {
+    await _projectsSubscription?.cancel();
+    return super.close();
+  }
 }
