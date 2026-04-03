@@ -19,13 +19,6 @@ class Assignee extends Equatable {
     return '${parts[0][0]}${parts.last[0]}'.toUpperCase();
   }
 
-  // Mock assignees
-  static const List<Assignee> mockAssignees = [
-    Assignee(id: '1', name: 'Sarah Chen', color: Color(0xFFD4A017)),
-    Assignee(id: '2', name: 'Mike Johnson', color: Color(0xFF9600BF)),
-    Assignee(id: '3', name: 'Emma Davis', color: Color(0xFF268060)),
-  ];
-
   @override
   List<Object?> get props => [id, name, color];
 }

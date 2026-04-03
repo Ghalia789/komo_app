@@ -117,60 +117,6 @@ class NotificationItem extends Equatable {
         relatedTaskId,
         relatedProjectId,
       ];
-
-  static List<NotificationItem> getMockData() {
-    final now = DateTime.now();
-    return [
-      NotificationItem(
-        id: '1',
-        title: 'New task assigned',
-        message: 'Sarah Chen assigned you to "Design homepage mockups"',
-        type: NotificationType.taskAssigned,
-        createdAt: now.subtract(const Duration(minutes: 5)),
-        isRead: false,
-      ),
-      NotificationItem(
-        id: '2',
-        title: 'Task completed',
-        message: 'Mike Johnson completed "Setup project structure"',
-        type: NotificationType.taskCompleted,
-        createdAt: now.subtract(const Duration(hours: 1)),
-        isRead: false,
-      ),
-      NotificationItem(
-        id: '3',
-        title: 'New comment',
-        message: 'Emma Davis commented on "Create wireframes"',
-        type: NotificationType.comment,
-        createdAt: now.subtract(const Duration(hours: 3)),
-        isRead: false,
-      ),
-      NotificationItem(
-        id: '4',
-        title: 'You were mentioned',
-        message: '@you was mentioned in "Design system review"',
-        type: NotificationType.mention,
-        createdAt: now.subtract(const Duration(hours: 5)),
-        isRead: true,
-      ),
-      NotificationItem(
-        id: '5',
-        title: 'Deadline approaching',
-        message: '"Homepage redesign" is due in 2 days',
-        type: NotificationType.deadline,
-        createdAt: now.subtract(const Duration(days: 1)),
-        isRead: true,
-      ),
-      NotificationItem(
-        id: '6',
-        title: 'Project invitation',
-        message: 'You were invited to join "Mobile App V2"',
-        type: NotificationType.projectInvite,
-        createdAt: now.subtract(const Duration(days: 2)),
-        isRead: true,
-      ),
-    ];
-  }
 }
 
 class NotificationsState extends Equatable {
