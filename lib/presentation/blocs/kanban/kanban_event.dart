@@ -1,3 +1,5 @@
+import '../../../domain/entities/task.dart';
+
 abstract class KanbanEvent {}
 
 class KanbanLoadData extends KanbanEvent {
@@ -16,3 +18,15 @@ class KanbanTaskTapped extends KanbanEvent {
 }
 
 class KanbanInvitePressed extends KanbanEvent {}
+
+class KanbanStreamUpdated extends KanbanEvent {
+  final List<Task> tasks;
+
+  KanbanStreamUpdated(this.tasks);
+}
+
+class KanbanStreamFailed extends KanbanEvent {
+  final String message;
+
+  KanbanStreamFailed(this.message);
+}

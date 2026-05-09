@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../domain/repositories/auth_repository.dart';
 import '../../../domain/repositories/user_repository.dart';
+import '../../../core/services/push_notification_service.dart';
 import 'settings_event.dart';
 import 'settings_state.dart';
 
@@ -21,7 +22,7 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
     on<SettingsDarkModeChanged>(_onDarkModeChanged);
     on<SettingsLanguageChanged>(_onLanguageChanged);
     on<SettingsClearCachePressed>(_onClearCache);
-    on<SettingsDeleteAccountPressed>(_onDeleteAccount);
+    on<SettingsDeleteAccountRequested>(_onDeleteAccount);
   }
 
   final AuthRepository _authRepository;
@@ -82,6 +83,7 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
   ) {
     emit(state.copyWith(pushNotifications: event.value));
     _saveBool(StorageKeys.notificationsEnabled, event.value);
+    PushNotificationService.setPushEnabled(event.value);
   }
 
   void _onEmailNotificationsChanged(
@@ -135,7 +137,7 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
   }
 
   Future<void> _onDeleteAccount(
-    SettingsDeleteAccountPressed event,
+    SettingsDeleteAccountRequested event,
     Emitter<SettingsState> emit,
   ) async {
     emit(state.copyWith(isLoading: true, errorMessage: () => null));
@@ -149,7 +151,10 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
         ));
       },
       (user) async {
-        final deleteResult = await _userRepository.deleteAccount(userId: user.id);
+        final deleteResult = event.mode == AccountDeleteMode.archive
+            ? await _userRepository.softDeleteAccount(userId: user.id)
+            : await _userRepository.hardDeleteAccount(userId: user.id);
+
         await deleteResult.fold(
           (failure) async {
             emit(state.copyWith(

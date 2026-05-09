@@ -65,6 +65,21 @@ abstract class UserRepository {
     required String userId,
   });
 
+  /// Soft-deletes (archives/deactivates) the account but keeps data recoverable.
+  Future<Either<Failure, Unit>> softDeleteAccount({
+    required String userId,
+  });
+
+  /// Restores a previously soft-deleted account.
+  Future<Either<Failure, Unit>> restoreAccount({
+    required String userId,
+  });
+
+  /// Hard-deletes account and associated data permanently.
+  Future<Either<Failure, Unit>> hardDeleteAccount({
+    required String userId,
+  });
+
   /// Checks if a user profile exists in Firestore.
   Future<Either<Failure, bool>> userProfileExists({
     required String userId,

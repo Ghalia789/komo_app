@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dartz/dartz.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
 import '../../core/constants/app_constants.dart';
@@ -27,6 +28,95 @@ class UserRepositoryImpl implements UserRepository {
 
   CollectionReference<Map<String, dynamic>> get _usersCol =>
       _firestore.collection(FirebaseConstants.usersCollection);
+
+  CollectionReference<Map<String, dynamic>> get _projectsCol =>
+      _firestore.collection(FirebaseConstants.projectsCollection);
+
+  CollectionReference<Map<String, dynamic>> get _tasksCol =>
+      _firestore.collection(FirebaseConstants.tasksCollection);
+
+  CollectionReference<Map<String, dynamic>> get _subtasksCol =>
+      _firestore.collection(FirebaseConstants.subtasksCollection);
+
+  CollectionReference<Map<String, dynamic>> get _commentsCol =>
+      _firestore.collection(FirebaseConstants.commentsCollection);
+
+  CollectionReference<Map<String, dynamic>> get _notificationsCol =>
+      _firestore.collection(FirebaseConstants.notificationsCollection);
+
+  CollectionReference<Map<String, dynamic>> get _invitationsCol =>
+      _firestore.collection(FirebaseConstants.invitationsCollection);
+
+  String _stripGsPrefix(String value) {
+    final trimmed = value.trim();
+    if (trimmed.startsWith('gs://')) {
+      return trimmed.substring(5);
+    }
+    return trimmed;
+  }
+
+  List<String> _candidateBuckets() {
+    final options = Firebase.app().options;
+    final projectId = options.projectId.trim();
+    final configuredRaw = options.storageBucket?.trim() ?? '';
+    final configured = _stripGsPrefix(configuredRaw);
+
+    final candidates = <String>{};
+    if (configured.isNotEmpty) {
+      candidates.add(configured);
+    }
+    if (projectId.isNotEmpty) {
+      candidates.add('$projectId.appspot.com');
+      candidates.add('$projectId.firebasestorage.app');
+    }
+    return candidates.toList();
+  }
+
+  List<FirebaseStorage> _candidateStorageInstances() {
+    final instances = <FirebaseStorage>{_storage};
+    for (final bucket in _candidateBuckets()) {
+      instances.add(FirebaseStorage.instanceFor(bucket: 'gs://$bucket'));
+    }
+    return instances.toList();
+  }
+
+  Future<void> _deleteByQuery(Query<Map<String, dynamic>> query) async {
+    final snapshot = await query.get();
+    if (snapshot.docs.isEmpty) return;
+
+    var batch = _firestore.batch();
+    var count = 0;
+    for (final doc in snapshot.docs) {
+      batch.delete(doc.reference);
+      count++;
+      if (count >= 400) {
+        await batch.commit();
+        batch = _firestore.batch();
+        count = 0;
+      }
+    }
+
+    if (count > 0) {
+      await batch.commit();
+    }
+  }
+
+  Future<void> _hardDeleteProjectCascade(String projectId) async {
+    final tasksSnap = await _tasksCol.where('projectId', isEqualTo: projectId).get();
+    final taskIds = tasksSnap.docs.map((d) => d.id).toList();
+
+    for (var i = 0; i < taskIds.length; i += 10) {
+      final chunk = taskIds.sublist(i, i + 10 < taskIds.length ? i + 10 : taskIds.length);
+      await _deleteByQuery(_subtasksCol.where('taskId', whereIn: chunk));
+      await _deleteByQuery(_commentsCol.where('taskId', whereIn: chunk));
+      await _deleteByQuery(_notificationsCol.where('relatedTaskId', whereIn: chunk));
+    }
+
+    await _deleteByQuery(_tasksCol.where('projectId', isEqualTo: projectId));
+    await _deleteByQuery(_invitationsCol.where('projectId', isEqualTo: projectId));
+    await _deleteByQuery(_notificationsCol.where('relatedProjectId', isEqualTo: projectId));
+    await _projectsCol.doc(projectId).delete();
+  }
 
   @override
   Future<Either<Failure, domain.User>> getUser({required String userId}) async {
@@ -120,24 +210,44 @@ class UserRepositoryImpl implements UserRepository {
     required String userId,
     required File imageFile,
   }) async {
+    if (!imageFile.existsSync()) {
+      return const Left(
+        ValidationFailure(message: 'Selected image file no longer exists.'),
+      );
+    }
+
     try {
       final fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final ref = _storage
-          .ref()
-          .child('${FirebaseConstants.profileImagesPath}/$userId/$fileName');
 
-      await ref.putFile(imageFile);
-      final url = await ref.getDownloadURL();
+      for (final storage in _candidateStorageInstances()) {
+        try {
+          final ref = storage
+              .ref()
+              .child('${FirebaseConstants.profileImagesPath}/$userId/$fileName');
 
-      await _usersCol.doc(userId).set(
-        {
-          'avatarUrl': url,
-          'updatedAt': FieldValue.serverTimestamp(),
-        },
-        SetOptions(merge: true),
+          await ref.putFile(imageFile);
+          final url = await ref.getDownloadURL();
+
+          await _usersCol.doc(userId).set(
+            {
+              'avatarUrl': url,
+              'updatedAt': FieldValue.serverTimestamp(),
+            },
+            SetOptions(merge: true),
+          );
+
+          return Right(url);
+        } catch (e) {
+          // Try next candidate bucket.
+        }
+      }
+
+      return Left(
+        ValidationFailure(
+          message:
+              'Avatar upload failed for all configured storage buckets. Verify Firebase Storage bucket configuration for this app.',
+        ),
       );
-
-      return Right(url);
     } catch (e) {
       return Left(ErrorMapper.mapExceptionToFailure(e));
     }
@@ -145,11 +255,76 @@ class UserRepositoryImpl implements UserRepository {
 
   @override
   Future<Either<Failure, Unit>> deleteAccount({required String userId}) async {
+    return hardDeleteAccount(userId: userId);
+  }
+
+  @override
+  Future<Either<Failure, Unit>> softDeleteAccount({required String userId}) async {
     try {
+      await _usersCol.doc(userId).set({
+        'isSoftDeleted': true,
+        'accountStatus': 'archived',
+        'softDeletedAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      return const Right(unit);
+    } catch (e) {
+      return Left(ErrorMapper.mapExceptionToFailure(e));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Unit>> restoreAccount({required String userId}) async {
+    try {
+      await _usersCol.doc(userId).set({
+        'isSoftDeleted': false,
+        'accountStatus': 'active',
+        'softDeletedAt': null,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      return const Right(unit);
+    } catch (e) {
+      return Left(ErrorMapper.mapExceptionToFailure(e));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Unit>> hardDeleteAccount({required String userId}) async {
+    try {
+      final ownedProjects = await _projectsCol.where('ownerId', isEqualTo: userId).get();
+      for (final project in ownedProjects.docs) {
+        await _hardDeleteProjectCascade(project.id);
+      }
+
+      final memberProjects = await _projectsCol.where('memberIds', arrayContains: userId).get();
+      for (final project in memberProjects.docs) {
+        if (project.get('ownerId') == userId) continue;
+        await project.reference.update({
+          'memberIds': FieldValue.arrayRemove([userId]),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+
+      final assignedTasks = await _tasksCol.where('assigneeId', isEqualTo: userId).get();
+      for (final taskDoc in assignedTasks.docs) {
+        await taskDoc.reference.update({
+          'assigneeId': null,
+          'assigneeName': null,
+          'assigneePhotoUrl': null,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+
+      await _deleteByQuery(_commentsCol.where('authorId', isEqualTo: userId));
+      await _deleteByQuery(_notificationsCol.where('userId', isEqualTo: userId));
+      await _deleteByQuery(_invitationsCol.where('invitedByUserId', isEqualTo: userId));
+      await _deleteByQuery(_invitationsCol.where('invitedUserId', isEqualTo: userId));
       await _usersCol.doc(userId).delete();
+
       if (_auth.currentUser?.uid == userId) {
         await _auth.currentUser?.delete();
       }
+
       return const Right(unit);
     } catch (e) {
       return Left(ErrorMapper.mapExceptionToFailure(e));

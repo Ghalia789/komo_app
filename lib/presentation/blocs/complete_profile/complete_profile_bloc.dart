@@ -39,10 +39,10 @@ class CompleteProfileBloc extends Bloc<CompleteProfileEvent, CompleteProfileStat
   }
 
   void _onNameChanged(CompleteProfileNameChanged event, Emitter<CompleteProfileState> emit) {
-    //final error = Validators.required(event.name, fieldName: 'Full Name');
+    final error = Validators.required(event.name, fieldName: 'Full Name');
     emit(state.copyWith(
       name: event.name,
-      nameError: null,
+      nameError: () => error,
     ));
   }
 
@@ -94,19 +94,14 @@ class CompleteProfileBloc extends Bloc<CompleteProfileEvent, CompleteProfileStat
         imageFile: File(avatarUrl),
       );
 
-      final uploaded = uploadResult.fold<String?>(
-        (failure) {
-          emit(state.copyWith(
-            isLoading: false,
-            errorMessage: () => failure.message,
-          ));
-          return null;
+      uploadResult.fold(
+        (_) {
+          // Storage can be temporarily misconfigured (bucket/App Check). Do not
+          // block profile completion: save text fields first, avatar can be retried.
+          avatarUrl = null;
         },
-        (url) => url,
+        (url) => avatarUrl = url,
       );
-
-      if (uploaded == null) return;
-      avatarUrl = uploaded;
     }
 
     final updateResult = await _userRepository.updateProfileFields(

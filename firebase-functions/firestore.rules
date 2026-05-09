@@ -86,7 +86,8 @@ service cloud.firestore {
       allow create: if isSignedIn() && isProjectMember(request.resource.data.projectId);
     }
 
-    // Password reset codes are only for Admin SDK/Cloud Functions.
+    // Password reset codes: Admin SDK/Cloud Functions write here, clients cannot.
+    // Note: Admin SDK bypasses all Firestore rules, so explicit deny only affects client access.
     match /resetCodes/{docId} {
       allow read, write: if false;
     }

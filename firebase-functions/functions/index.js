@@ -8,6 +8,8 @@ const db = admin.firestore();
 const RESET_CODES_COLLECTION = 'resetCodes';
 const INVITATIONS_COLLECTION = 'invitations';
 const PROJECTS_COLLECTION = 'projects';
+const USERS_COLLECTION = 'users';
+const NOTIFICATIONS_COLLECTION = 'notifications';
 const INVITATION_STATUS_PENDING = 'pending';
 const INVITATION_STATUS_ACCEPTED = 'accepted';
 const CODE_TTL_MINUTES = 10;
@@ -127,7 +129,7 @@ exports.sendPasswordResetCode = functions.https.onCall(async (data) => {
   try {
     await sgMail.send({
       to: email,
-      from: 'no-reply@komo.app',
+      from: 'cara.inc.komo@gmail.com',
       subject: 'Your KOMO password reset code',
       html: buildEmailHtml(shortCode),
     });
@@ -281,3 +283,83 @@ exports.processPendingInvitationsOnUserCreate = functions.auth.user().onCreate(a
 
   return null;
 });
+
+exports.sendPushOnNotificationCreate = functions.firestore
+  .document(`${NOTIFICATIONS_COLLECTION}/{notificationId}`)
+  .onCreate(async (snap) => {
+    const notification = snap.data() || {};
+    const userId = notification.userId;
+
+    if (!userId) {
+      return null;
+    }
+
+    const userSnap = await db.collection(USERS_COLLECTION).doc(userId).get();
+    if (!userSnap.exists) {
+      return null;
+    }
+
+    const userData = userSnap.data() || {};
+    const pushEnabled = userData.pushNotificationsEnabled !== false;
+    const tokens = Array.isArray(userData.fcmTokens)
+      ? userData.fcmTokens.filter((t) => typeof t === 'string' && t.trim())
+      : [];
+
+    if (!pushEnabled || tokens.length === 0) {
+      return null;
+    }
+
+    const title = notification.title || 'KOMO';
+    const body = notification.message || 'You have a new update';
+
+    const message = {
+      tokens,
+      notification: {
+        title,
+        body,
+      },
+      data: {
+        type: String(notification.type || ''),
+        relatedTaskId: String(notification.relatedTaskId || ''),
+        relatedProjectId: String(notification.relatedProjectId || ''),
+        route: String(notification.relatedTaskId ? '/task-details' : '/dashboard'),
+      },
+      android: {
+        priority: 'high',
+        notification: {
+          channelId: 'komo_notifications',
+        },
+      },
+      apns: {
+        payload: {
+          aps: {
+            sound: 'default',
+          },
+        },
+      },
+    };
+
+    const response = await admin.messaging().sendEachForMulticast(message);
+
+    const invalidTokens = [];
+    response.responses.forEach((r, idx) => {
+      if (!r.success && r.error && (
+        r.error.code === 'messaging/registration-token-not-registered' ||
+        r.error.code === 'messaging/invalid-registration-token'
+      )) {
+        invalidTokens.push(tokens[idx]);
+      }
+    });
+
+    if (invalidTokens.length > 0) {
+      await db.collection(USERS_COLLECTION).doc(userId).set(
+        {
+          fcmTokens: admin.firestore.FieldValue.arrayRemove(...invalidTokens),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      );
+    }
+
+    return null;
+  });

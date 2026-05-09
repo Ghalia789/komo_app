@@ -65,6 +65,33 @@ class NotificationsView extends StatelessWidget {
             return const Center(child: CircularProgressIndicator());
           }
 
+          if (state.errorMessage != null && state.notifications.isEmpty) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.error_outline, color: AppColors.error, size: 48),
+                    const SizedBox(height: 12),
+                    Text(
+                      state.errorMessage!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: AppColors.textPrimary),
+                    ),
+                    const SizedBox(height: 12),
+                    OutlinedButton(
+                      onPressed: () => context
+                          .read<NotificationsBloc>()
+                          .add(NotificationsLoadData()),
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+
           if (state.notifications.isEmpty) {
             return _buildEmptyState();
           }

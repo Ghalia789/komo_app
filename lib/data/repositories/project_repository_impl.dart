@@ -32,6 +32,15 @@ class ProjectRepositoryImpl implements ProjectRepository {
   CollectionReference<Map<String, dynamic>> get _invitationsCol =>
       _firestore.collection(FirebaseConstants.invitationsCollection);
 
+    CollectionReference<Map<String, dynamic>> get _tasksCol =>
+      _firestore.collection(FirebaseConstants.tasksCollection);
+
+    CollectionReference<Map<String, dynamic>> get _subtasksCol =>
+      _firestore.collection(FirebaseConstants.subtasksCollection);
+
+    CollectionReference<Map<String, dynamic>> get _commentsCol =>
+      _firestore.collection(FirebaseConstants.commentsCollection);
+
   // ── helpers ──────────────────────────────────────────────────────────────
 
   Project _mapDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
@@ -73,6 +82,50 @@ class ProjectRepositoryImpl implements ProjectRepository {
     return ids;
   }
 
+  bool _isActiveProject(Map<String, dynamic> data) {
+    final isArchived = data['isArchived'] == true;
+    final isSoftDeleted = data['isSoftDeleted'] == true;
+    return !isArchived && !isSoftDeleted;
+  }
+
+  Future<void> _deleteByQuery(Query<Map<String, dynamic>> query) async {
+    final snapshot = await query.get();
+    if (snapshot.docs.isEmpty) return;
+
+    var batch = _firestore.batch();
+    var count = 0;
+    for (final doc in snapshot.docs) {
+      batch.delete(doc.reference);
+      count++;
+      if (count >= 400) {
+        await batch.commit();
+        batch = _firestore.batch();
+        count = 0;
+      }
+    }
+
+    if (count > 0) {
+      await batch.commit();
+    }
+  }
+
+  Future<void> _hardDeleteProjectCascade(String projectId) async {
+    final tasksSnap = await _tasksCol.where('projectId', isEqualTo: projectId).get();
+    final taskIds = tasksSnap.docs.map((d) => d.id).toList();
+
+    for (var i = 0; i < taskIds.length; i += 10) {
+      final chunk = taskIds.sublist(i, i + 10 < taskIds.length ? i + 10 : taskIds.length);
+      await _deleteByQuery(_subtasksCol.where('taskId', whereIn: chunk));
+      await _deleteByQuery(_commentsCol.where('taskId', whereIn: chunk));
+      await _deleteByQuery(_notificationsCol.where('relatedTaskId', whereIn: chunk));
+    }
+
+    await _deleteByQuery(_tasksCol.where('projectId', isEqualTo: projectId));
+    await _deleteByQuery(_invitationsCol.where('projectId', isEqualTo: projectId));
+    await _deleteByQuery(_notificationsCol.where('relatedProjectId', isEqualTo: projectId));
+    await _projectsCol.doc(projectId).delete();
+  }
+
   // ── interface ─────────────────────────────────────────────────────────────
 
   @override
@@ -83,7 +136,11 @@ class ProjectRepositoryImpl implements ProjectRepository {
           .where('memberIds', arrayContains: userId)
           .orderBy('updatedAt', descending: true)
           .get();
-      return Right(snap.docs.map(_mapDoc).toList());
+      final projects = snap.docs
+          .where((doc) => _isActiveProject(doc.data()))
+          .map(_mapDoc)
+          .toList();
+      return Right(projects);
     } catch (e) {
       return Left(ErrorMapper.mapExceptionToFailure(e));
     }
@@ -164,8 +221,79 @@ class ProjectRepositoryImpl implements ProjectRepository {
   @override
   Future<Either<Failure, Unit>> deleteProject(
       {required String projectId}) async {
+    return hardDeleteProject(projectId: projectId);
+  }
+
+  @override
+  Future<Either<Failure, Unit>> archiveProject({
+    required String projectId,
+  }) async {
     try {
-      await _projectsCol.doc(projectId).delete();
+      await _projectsCol.doc(projectId).update({
+        'isArchived': true,
+        'archivedAt': DateTime.now(),
+        'updatedAt': DateTime.now(),
+      });
+      return const Right(unit);
+    } catch (e) {
+      return Left(ErrorMapper.mapExceptionToFailure(e));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Unit>> restoreProject({
+    required String projectId,
+  }) async {
+    try {
+      await _projectsCol.doc(projectId).update({
+        'isArchived': false,
+        'archivedAt': null,
+        'updatedAt': DateTime.now(),
+      });
+      return const Right(unit);
+    } catch (e) {
+      return Left(ErrorMapper.mapExceptionToFailure(e));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Unit>> softDeleteProject({
+    required String projectId,
+  }) async {
+    try {
+      await _projectsCol.doc(projectId).update({
+        'isSoftDeleted': true,
+        'softDeletedAt': DateTime.now(),
+        'updatedAt': DateTime.now(),
+      });
+      return const Right(unit);
+    } catch (e) {
+      return Left(ErrorMapper.mapExceptionToFailure(e));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Unit>> restoreSoftDeletedProject({
+    required String projectId,
+  }) async {
+    try {
+      await _projectsCol.doc(projectId).update({
+        'isSoftDeleted': false,
+        'softDeletedAt': null,
+        'updatedAt': DateTime.now(),
+      });
+      return const Right(unit);
+    } catch (e) {
+      return Left(ErrorMapper.mapExceptionToFailure(e));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Unit>> hardDeleteProject({
+    required String projectId,
+  }) async {
+    try {
+      await _hardDeleteProjectCascade(projectId);
       return const Right(unit);
     } catch (e) {
       return Left(ErrorMapper.mapExceptionToFailure(e));
@@ -432,7 +560,12 @@ class ProjectRepositoryImpl implements ProjectRepository {
         .orderBy('updatedAt', descending: true)
         .snapshots()
         .map<Either<Failure, List<Project>>>(
-          (snapshot) => Right(snapshot.docs.map(_mapDoc).toList()),
+          (snapshot) => Right(
+            snapshot.docs
+                .where((doc) => _isActiveProject(doc.data()))
+                .map(_mapDoc)
+                .toList(),
+          ),
         )
         .handleError((Object e) =>
             Left<Failure, List<Project>>(ErrorMapper.mapExceptionToFailure(e)));
@@ -449,7 +582,11 @@ class ProjectRepositoryImpl implements ProjectRepository {
           .orderBy('updatedAt', descending: true)
           .limit(limit)
           .get();
-      return Right(snap.docs.map(_mapDoc).toList());
+      final projects = snap.docs
+          .where((doc) => _isActiveProject(doc.data()))
+          .map(_mapDoc)
+          .toList();
+      return Right(projects);
     } catch (e) {
       return Left(ErrorMapper.mapExceptionToFailure(e));
     }

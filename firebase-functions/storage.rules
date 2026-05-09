@@ -1,0 +1,29 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // User avatars: owner can upload/update/delete their own files.
+    match /profile_images/{userId}/{allPaths=**} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Project images and attachments are kept authenticated-only for now.
+    // Tighten these later if you add per-project metadata-based checks.
+    match /project_images/{allPaths=**} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /task_attachments/{allPaths=**} {
+      allow read, write: if isSignedIn();
+    }
+
+    // Deny everything else by default.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

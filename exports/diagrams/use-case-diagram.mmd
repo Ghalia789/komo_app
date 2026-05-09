@@ -1,0 +1,84 @@
+﻿flowchart LR
+    user([End User])
+    owner([Project Owner])
+    member([Project Member])
+    backend([Firebase / Cloud Functions])
+
+    subgraph auth[Authentication]
+      uc1((Sign up))
+      uc2((Sign in))
+      uc3((Reset password))
+      uc4((Sign out))
+    end
+
+    subgraph profile[Profile]
+      uc5((Complete profile))
+      uc6((View / edit profile))
+      uc7((Upload avatar))
+    end
+
+    subgraph projects[Projects]
+      uc8((Create project))
+      uc9((View dashboard))
+      uc10((Open project board))
+      uc11((Edit project details))
+      uc12((Invite members))
+      uc13((Manage pending invites))
+      uc14((Leave project))
+    end
+
+    subgraph tasks[Tasks]
+      uc15((Create task))
+      uc16((Move task across columns))
+      uc17((Assign / unassign task))
+      uc18((Set tags / dates / priority))
+      uc19((Manage subtasks))
+      uc20((Manage comments))
+      uc21((View task details))
+    end
+
+    subgraph notifications[Notifications]
+      uc22((View notifications))
+      uc23((Mark notification read))
+      uc24((Open related task / project))
+    end
+
+    subgraph settings[Settings]
+      uc25((Update preferences))
+      uc26((Toggle theme))
+      uc27((Change language))
+      uc28((Clear cache))
+      uc29((Delete account))
+    end
+
+    user --> uc1
+    user --> uc2
+    user --> uc3
+    user --> uc4
+    user --> uc5
+    user --> uc6
+    user --> uc7
+    user --> uc8
+    user --> uc9
+    user --> uc10
+    user --> uc15
+    user --> uc21
+    user --> uc22
+    user --> uc25
+
+    owner --> uc11
+    owner --> uc12
+    owner --> uc13
+    owner --> uc14
+    owner --> uc17
+    owner --> uc29
+
+    member --> uc14
+    member --> uc17
+    member --> uc19
+    member --> uc20
+
+    backend --> uc3
+    backend --> uc7
+    backend --> uc12
+    backend --> uc22

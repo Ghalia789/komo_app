@@ -1,0 +1,135 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>diagrams_updated diagram</title>
+  <style>
+    body { margin: 0; padding: 24px; font-family: Segoe UI, sans-serif; background: #f7f8fa; }
+    .wrap { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 6px 24px rgba(0,0,0,.08); overflow:auto; }
+  </style>
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true, securityLevel: 'loose', theme: 'default' });
+  </script>
+</head>
+<body>
+  <div class="wrap">
+    <div class="mermaid">
+erDiagram
+    USER {
+        string id PK
+        string email
+        string name
+        string jobTitle
+        string company
+        string role
+        string avatarUrl
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    PROJECT {
+        string id PK
+        string ownerId FK
+        string name
+        string description
+        int taskCount
+        int completedTasks
+        array memberIds
+        array memberAvatars
+        string color
+        string icon
+        datetime dueDate
+        datetime startDate
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    TASK {
+        string id PK
+        string projectId FK
+        string title
+        string description
+        string columnId
+        array tags
+        string priority
+        datetime dueDate
+        datetime startDate
+        int totalSubtasks
+        int completedSubtasks
+        int commentCount
+        string assigneeId FK
+        string assigneeName
+        string assigneePhotoUrl
+        int order
+        int leftBorderColor
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    SUBTASK {
+        string id PK
+        string taskId FK
+        string title
+        boolean isCompleted
+        datetime dueDate
+        int order
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    COMMENT {
+        string id PK
+        string taskId FK
+        string authorId FK
+        string authorName
+        string authorPhotoUrl
+        string text
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    PROJECT_INVITATION {
+        string id PK
+        string projectId FK
+        string invitedEmail
+        string invitedByUserId FK
+        string status
+        datetime createdAt
+        datetime updatedAt
+        datetime lastSentAt
+        datetime acceptedAt
+        string invitedUserId FK
+    }
+
+    APP_NOTIFICATION {
+        string id PK
+        string userId FK
+        string title
+        string message
+        string type
+        boolean isRead
+        string relatedTaskId FK
+        string relatedProjectId FK
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    USER ||--o{ PROJECT : owns
+    USER }o--o{ PROJECT : memberIds
+    PROJECT ||--o{ TASK : contains
+    TASK ||--o{ SUBTASK : contains
+    TASK ||--o{ COMMENT : has
+    USER ||--o{ TASK : assigneeId
+    USER ||--o{ COMMENT : authorId
+    USER ||--o{ APP_NOTIFICATION : receives
+    PROJECT ||--o{ PROJECT_INVITATION : has
+    USER ||--o{ PROJECT_INVITATION : invitedByUserId
+    TASK ||--o{ APP_NOTIFICATION : relatedTaskId
+    PROJECT ||--o{ APP_NOTIFICATION : relatedProjectId
+
+    </div>
+  </div>
+</body>
+</html>

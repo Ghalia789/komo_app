@@ -1,5 +1,7 @@
 abstract class SettingsEvent {}
 
+enum AccountDeleteMode { archive, hardDelete }
+
 class SettingsLoadData extends SettingsEvent {}
 
 class SettingsPushNotificationsChanged extends SettingsEvent {
@@ -30,3 +32,9 @@ class SettingsLanguageChanged extends SettingsEvent {
 class SettingsClearCachePressed extends SettingsEvent {}
 
 class SettingsDeleteAccountPressed extends SettingsEvent {}
+
+class SettingsDeleteAccountRequested extends SettingsEvent {
+  final AccountDeleteMode mode;
+
+  SettingsDeleteAccountRequested(this.mode);
+}

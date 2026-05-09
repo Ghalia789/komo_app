@@ -54,7 +54,14 @@ class TaskDetailsBloc extends Bloc<TaskDetailsEvent, TaskDetailsState> {
       return;
     }
 
-    final task = taskResult.getOrElse(() => throw Exception('unreachable'));
+    final task = taskResult.fold((_) => null, (t) => t);
+    if (task == null) {
+      emit(state.copyWith(
+        isLoading: false,
+        errorMessage: () => 'Unable to load task',
+      ));
+      return;
+    }
     final taskModel = TaskModel.fromDomain(task);
 
     // Kick off remaining requests in parallel
@@ -162,7 +169,9 @@ class TaskDetailsBloc extends Bloc<TaskDetailsEvent, TaskDetailsState> {
 
     final result = await _taskRepository.createSubtask(subtask: newSubtask);
     result.fold(
-      (_) {}, // silently swallow — UI already shows the field
+      (failure) {
+        emit(state.copyWith(errorMessage: () => failure.message));
+      },
       (created) {
         emit(state.copyWith(
           subtasks: [...state.subtasks, SubtaskModel.fromDomain(created)],

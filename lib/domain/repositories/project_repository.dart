@@ -44,6 +44,31 @@ abstract class ProjectRepository {
     required String projectId,
   });
 
+  /// Archives a project (soft hide from active lists).
+  Future<Either<Failure, Unit>> archiveProject({
+    required String projectId,
+  });
+
+  /// Restores a previously archived project.
+  Future<Either<Failure, Unit>> restoreProject({
+    required String projectId,
+  });
+
+  /// Marks a project as softly deleted (recoverable).
+  Future<Either<Failure, Unit>> softDeleteProject({
+    required String projectId,
+  });
+
+  /// Restores a softly deleted project.
+  Future<Either<Failure, Unit>> restoreSoftDeletedProject({
+    required String projectId,
+  });
+
+  /// Hard deletes a project with full cascade cleanup.
+  Future<Either<Failure, Unit>> hardDeleteProject({
+    required String projectId,
+  });
+
   /// Gets the members of a project.
   /// 
   /// Returns list of [User] who are members.

@@ -1,4 +1,5 @@
 /// Application-wide constants
+library;
 
 // ==================== Route Constants ====================
 

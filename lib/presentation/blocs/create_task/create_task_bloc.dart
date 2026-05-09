@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../domain/entities/subtask.dart';
 import '../../../domain/entities/task.dart';
+import '../../../domain/entities/user.dart' as domain;
 import '../../../domain/repositories/project_repository.dart';
 import '../../../domain/repositories/task_repository.dart';
 import 'create_task_event.dart';
@@ -171,6 +172,15 @@ class CreateTaskBloc extends Bloc<CreateTaskEvent, CreateTaskState> {
     final assigneeId = state.selectedAssigneeIds.isNotEmpty
         ? state.selectedAssigneeIds.first
         : null;
+    domain.User? selectedAssignee;
+    if (assigneeId != null) {
+      for (final member in state.members) {
+        if (member.id == assigneeId) {
+          selectedAssignee = member;
+          break;
+        }
+      }
+    }
 
     final now = DateTime.now();
     final task = Task(
@@ -185,6 +195,8 @@ class CreateTaskBloc extends Bloc<CreateTaskEvent, CreateTaskState> {
       dueDate: state.dueDate,
       startDate: state.startDate,
       assigneeId: assigneeId,
+      assigneeName: selectedAssignee?.name,
+      assigneePhotoUrl: selectedAssignee?.avatarUrl,
       order: DateTime.now().millisecondsSinceEpoch,
       createdAt: now,
     );

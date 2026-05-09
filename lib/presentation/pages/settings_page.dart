@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/services.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/theme_mode_controller.dart';
+import '../../core/constants/app_constants.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../domain/repositories/user_repository.dart';
 import '../../injection.dart';
@@ -498,9 +499,9 @@ class SettingsView extends StatelessWidget {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Delete Account'),
+        title: const Text('Delete Or Archive Account'),
         content: const Text(
-          'This action is irreversible. All your data will be permanently deleted.',
+          'Choose Archive to deactivate and keep data recoverable, or Permanent Delete to remove everything irreversibly.',
         ),
         actions: [
           TextButton(
@@ -509,11 +510,22 @@ class SettingsView extends StatelessWidget {
           ),
           TextButton(
             onPressed: () {
-              context.read<SettingsBloc>().add(SettingsDeleteAccountPressed());
+              context
+                  .read<SettingsBloc>()
+                  .add(SettingsDeleteAccountRequested(AccountDeleteMode.archive));
+              Navigator.pop(dialogContext);
+            },
+            child: const Text('Archive'),
+          ),
+          TextButton(
+            onPressed: () {
+              context
+                  .read<SettingsBloc>()
+                  .add(SettingsDeleteAccountRequested(AccountDeleteMode.hardDelete));
               Navigator.pop(dialogContext);
             },
             child: const Text(
-              'Delete',
+              'Permanent Delete',
               style: TextStyle(color: AppColors.error),
             ),
           ),
@@ -534,7 +546,13 @@ class SettingsView extends StatelessWidget {
             await authRepository.sendPasswordResetCode(email: user.email);
         resetResult.fold(
           (failure) => _showFeaturePlanned(context, failure.message),
-          (_) => _showFeaturePlanned(context, 'Reset code sent to ${user.email}'),
+          (_) {
+            _showFeaturePlanned(context, 'Reset code sent to ${user.email}');
+            Navigator.of(context).pushNamed(
+              RouteConstants.resetPassword,
+              arguments: user.email,
+            );
+          },
         );
       },
     );
