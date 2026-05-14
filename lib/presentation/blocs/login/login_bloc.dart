@@ -20,6 +20,7 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
     on<LoginSignUpPressed>(_onSignUpPressed);
     on<LoginForgotPasswordPressed>(_onForgotPasswordPressed);
     on<LoginForgotPasswordSubmitted>(_onForgotPasswordSubmitted);
+    on<LoginResendVerificationPressed>(_onResendVerificationPressed);
   }
 
   final AuthRepository _authRepository;
@@ -47,6 +48,7 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
     emit(state.copyWith(
       email: event.email,
       emailError: () => null,
+      requiresEmailVerification: false,
       errorMessage: () => null,
       infoMessage: () => null,
     ));
@@ -56,6 +58,7 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
     emit(state.copyWith(
       password: event.password,
       passwordError: () => null,
+      requiresEmailVerification: false,
       errorMessage: () => null,
       infoMessage: () => null,
     ));
@@ -91,7 +94,7 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
 
       await _persistRememberMe(state.rememberMe, state.email.trim());
 
-      result.fold(
+      await result.fold(
         (failure) {
           final emailFieldError = failure is ValidationFailure
               ? (failure.fieldErrors?['email'])
@@ -99,14 +102,42 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
           emit(state.copyWith(
             isLoading: false,
             emailError: emailFieldError != null ? () => emailFieldError : null,
+            requiresEmailVerification: false,
             errorMessage: () => failure.message,
           ));
         },
-        (_) {
-          emit(state.copyWith(
-            isLoading: false,
-            isSuccess: true,
-          ));
+        (_) async {
+          final verifiedResult = await _authRepository.isCurrentUserEmailVerified(
+            reload: true,
+          );
+
+          await verifiedResult.fold(
+            (failure) async {
+              emit(state.copyWith(
+                isLoading: false,
+                requiresEmailVerification: false,
+                errorMessage: () => failure.message,
+              ));
+            },
+            (isVerified) async {
+              if (!isVerified) {
+                emit(state.copyWith(
+                  isLoading: false,
+                  isSuccess: false,
+                  requiresEmailVerification: true,
+                  infoMessage: () =>
+                      'Please verify your email to continue. Check your inbox or resend the link below.',
+                ));
+                return;
+              }
+
+              emit(state.copyWith(
+                isLoading: false,
+                requiresEmailVerification: false,
+                isSuccess: true,
+              ));
+            },
+          );
         },
       );
     } catch (e) {
@@ -163,6 +194,29 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
         errorMessage: () => ErrorMessages.somethingWentWrong,
       ));
     }
+  }
+
+  Future<void> _onResendVerificationPressed(
+    LoginResendVerificationPressed event,
+    Emitter<LoginState> emit,
+  ) async {
+    emit(state.copyWith(isLoading: true, errorMessage: () => null, infoMessage: () => null));
+
+    final result = await _authRepository.sendEmailVerification();
+    result.fold(
+      (failure) {
+        emit(state.copyWith(
+          isLoading: false,
+          errorMessage: () => failure.message,
+        ));
+      },
+      (_) {
+        emit(state.copyWith(
+          isLoading: false,
+          infoMessage: () => 'Verification email sent. Please check your inbox.',
+        ));
+      },
+    );
   }
 
   Future<void> _persistRememberMe(bool remember, String email) async {

@@ -7,6 +7,7 @@ class LoginState extends Equatable {
   final String? passwordError;
   final bool isLoading;
   final bool isSuccess;
+  final bool requiresEmailVerification;
   final String? errorMessage;
   final String? infoMessage;
   final bool rememberMe;
@@ -18,6 +19,7 @@ class LoginState extends Equatable {
     this.passwordError,
     this.isLoading = false,
     this.isSuccess = false,
+    this.requiresEmailVerification = false,
     this.errorMessage,
     this.infoMessage,
     this.rememberMe = true,
@@ -36,6 +38,7 @@ class LoginState extends Equatable {
     String? Function()? passwordError,
     bool? isLoading,
     bool? isSuccess,
+    bool? requiresEmailVerification,
     String? Function()? errorMessage,
     String? Function()? infoMessage,
     bool? rememberMe,
@@ -47,6 +50,8 @@ class LoginState extends Equatable {
       passwordError: passwordError != null ? passwordError() : this.passwordError,
       isLoading: isLoading ?? this.isLoading,
       isSuccess: isSuccess ?? this.isSuccess,
+        requiresEmailVerification:
+          requiresEmailVerification ?? this.requiresEmailVerification,
       errorMessage: errorMessage != null ? errorMessage() : this.errorMessage,
       infoMessage: infoMessage != null ? infoMessage() : this.infoMessage,
       rememberMe: rememberMe ?? this.rememberMe,
@@ -61,6 +66,7 @@ class LoginState extends Equatable {
         passwordError,
         isLoading,
         isSuccess,
+        requiresEmailVerification,
         errorMessage,
         infoMessage,
         rememberMe,

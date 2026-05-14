@@ -13,6 +13,7 @@ import 'core/theme/theme_mode_controller.dart';
 import 'domain/entities/project.dart';
 import 'presentation/pages/pages.dart';
 import 'presentation/blocs/blocs.dart';
+import 'presentation/widgets/auth/email_verification_guard.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -64,37 +65,55 @@ class KomoApp extends StatelessWidget {
             '/login': (context) => const LoginPage(),
             '/signup': (context) => const SignupPage(),
             '/complete-profile': (context) => const CompleteProfilePage(),
-            '/dashboard': (context) => const DashboardPage(),
-            '/create-project': (context) => const CreateProjectPage(),
-            '/profile': (context) => const ProfilePage(),
-            '/settings': (context) => const SettingsPage(),
-            '/notifications': (context) => const NotificationsPage(),
+            '/dashboard': (context) => const EmailVerificationGuard(
+                  child: DashboardPage(),
+                ),
+            '/create-project': (context) => const EmailVerificationGuard(
+                  child: CreateProjectPage(),
+                ),
+            '/profile': (context) => const EmailVerificationGuard(
+                  child: ProfilePage(),
+                ),
+            '/settings': (context) => const EmailVerificationGuard(
+                  child: SettingsPage(),
+                ),
+            '/notifications': (context) => const EmailVerificationGuard(
+                  child: NotificationsPage(),
+                ),
           },
           onGenerateRoute: (settings) {
             if (settings.name == '/create-task') {
               final projectId =
                   settings.arguments is String ? settings.arguments as String : '';
               return MaterialPageRoute(
-                builder: (context) => CreateTaskPage(projectId: projectId),
+                builder: (context) => EmailVerificationGuard(
+                  child: CreateTaskPage(projectId: projectId),
+                ),
               );
             } else if (settings.name == '/kanban') {
               if (settings.arguments is Project) {
                 final project = settings.arguments as Project;
                 return MaterialPageRoute(
-                  builder: (context) => KanbanPage(project: project),
+                  builder: (context) => EmailVerificationGuard(
+                    child: KanbanPage(project: project),
+                  ),
                 );
               }
             } else if (settings.name == '/task-details') {
               if (settings.arguments is String) {
                 final taskId = settings.arguments as String;
                 return MaterialPageRoute(
-                  builder: (context) => TaskDetailsPage(taskId: taskId),
+                  builder: (context) => EmailVerificationGuard(
+                    child: TaskDetailsPage(taskId: taskId),
+                  ),
                 );
               }
             } else if (settings.name == '/style-project') {
               if (settings.arguments is CreateProjectBloc) {
                 return MaterialPageRoute(
-                  builder: (context) => const StyleProjectPage(),
+                  builder: (context) => const EmailVerificationGuard(
+                    child: StyleProjectPage(),
+                  ),
                   settings: settings,
                 );
               }

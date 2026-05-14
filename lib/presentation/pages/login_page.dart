@@ -293,6 +293,60 @@ class _LoginViewState extends State<LoginView> {
                         );
                       },
                     ),
+
+                    const SizedBox(height: 12),
+
+                    BlocBuilder<LoginBloc, LoginState>(
+                      buildWhen: (previous, current) =>
+                          previous.requiresEmailVerification !=
+                              current.requiresEmailVerification ||
+                          previous.isLoading != current.isLoading,
+                      builder: (context, state) {
+                        if (!state.requiresEmailVerification) {
+                          return const SizedBox.shrink();
+                        }
+
+                        return Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Email not verified yet.',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              const Text(
+                                'Open the verification link from your inbox to continue.',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              TextButton(
+                                onPressed: state.isLoading
+                                    ? null
+                                    : () {
+                                        context.read<LoginBloc>().add(
+                                              LoginResendVerificationPressed(),
+                                            );
+                                      },
+                                child: const Text('Resend verification email'),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
                     
                     const SizedBox(height: 16),
                     

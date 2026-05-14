@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dartz/dartz.dart';
 
@@ -559,16 +561,27 @@ class ProjectRepositoryImpl implements ProjectRepository {
         .where('memberIds', arrayContains: userId)
         .orderBy('updatedAt', descending: true)
         .snapshots()
-        .map<Either<Failure, List<Project>>>(
-          (snapshot) => Right(
-            snapshot.docs
-                .where((doc) => _isActiveProject(doc.data()))
-                .map(_mapDoc)
-                .toList(),
+        .transform(
+          StreamTransformer.fromHandlers(
+            handleData: (snapshot, sink) {
+              sink.add(
+                Right(
+                  snapshot.docs
+                      .where((doc) => _isActiveProject(doc.data()))
+                      .map(_mapDoc)
+                      .toList(),
+                ),
+              );
+            },
+            handleError: (error, _, sink) {
+              sink.add(
+                Left<Failure, List<Project>>(
+                  ErrorMapper.mapExceptionToFailure(error),
+                ),
+              );
+            },
           ),
-        )
-        .handleError((Object e) =>
-            Left<Failure, List<Project>>(ErrorMapper.mapExceptionToFailure(e)));
+        );
   }
 
   @override

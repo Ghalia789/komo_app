@@ -21,4 +21,5 @@ export 'feedback/komo_animated_dots.dart';
 export 'cards/team_member_item.dart';
 export 'cards/project_info_card.dart';
 export 'cards/pending_invite_item.dart';
+export 'auth/email_verification_guard.dart';
 

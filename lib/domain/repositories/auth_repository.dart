@@ -43,6 +43,18 @@ abstract class AuthRepository {
     required String email,
   });
 
+  /// Sends an email verification link to the currently signed-in user.
+  ///
+  /// Returns [Unit] on success.
+  Future<Either<Failure, Unit>> sendEmailVerification();
+
+  /// Checks whether current user's email is verified.
+  ///
+  /// Set [reload] to true to refresh auth state from Firebase first.
+  Future<Either<Failure, bool>> isCurrentUserEmailVerified({
+    bool reload = false,
+  });
+
   /// Sends a short numeric password reset code via backend callable.
   ///
   /// Returns [Unit] on success.

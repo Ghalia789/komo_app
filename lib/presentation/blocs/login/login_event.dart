@@ -38,3 +38,6 @@ class LoginForgotPasswordSubmitted extends LoginEvent {
   final String email;
   LoginForgotPasswordSubmitted(this.email);
 }
+
+// User tapped "Resend verification email"
+class LoginResendVerificationPressed extends LoginEvent {}

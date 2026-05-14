@@ -171,6 +171,17 @@ class SignupView extends StatelessWidget {
                         );
                       },
                     ),
+
+                    const SizedBox(height: 10),
+
+                    Text(
+                      'A verification link will be sent to your email after sign up.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
                   ],
                 ),
               ),

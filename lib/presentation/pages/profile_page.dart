@@ -105,6 +105,11 @@ class ProfileView extends StatelessWidget {
                       onTap: () => _sendPasswordResetCode(context, state),
                     ),
                     _buildOptionTile(
+                      icon: Icons.verified_outlined,
+                      title: 'Resend Verification Email',
+                      onTap: () => _resendVerificationEmail(context),
+                    ),
+                    _buildOptionTile(
                       icon: Icons.email_outlined,
                       title: 'Email Preferences',
                       onTap: () => Navigator.pushNamed(context, RouteConstants.settings),
@@ -302,6 +307,29 @@ class ProfileView extends StatelessWidget {
     result.fold(
       (failure) => _showInfo(context, failure.message),
       (_) => _showInfo(context, 'Reset code sent to $email'),
+    );
+  }
+
+  Future<void> _resendVerificationEmail(BuildContext context) async {
+    final authRepository = locator<AuthRepository>();
+
+    final verifiedResult = await authRepository.isCurrentUserEmailVerified(
+      reload: true,
+    );
+
+    final alreadyVerified = verifiedResult.fold(
+      (_) => false,
+      (isVerified) => isVerified,
+    );
+    if (alreadyVerified) {
+      _showInfo(context, 'Your email is already verified.');
+      return;
+    }
+
+    final sendResult = await authRepository.sendEmailVerification();
+    sendResult.fold(
+      (failure) => _showInfo(context, failure.message),
+      (_) => _showInfo(context, 'Verification email sent. Please check your inbox.'),
     );
   }
 

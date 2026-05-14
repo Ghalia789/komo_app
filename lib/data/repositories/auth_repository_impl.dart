@@ -32,19 +32,36 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Stream<domain.User?> get authStateChanges => _auth.authStateChanges().asyncMap(
         (fb.User? user) async {
+          // Debug: log auth state changes to diagnose unauthenticated events
+          // ignore: avoid_print
+          print('🔔 authStateChanges emitted user=${user?.uid} at ${DateTime.now().toIso8601String()}');
           if (user == null) return null;
+          final start = DateTime.now();
           final result = await _fetchUserProfile(user.uid);
-          return result.fold((_) => null, (u) => u);
+          final duration = DateTime.now().difference(start);
+          // ignore: avoid_print
+          print('⏱️ _fetchUserProfile for ${user.uid} took ${duration.inMilliseconds}ms');
+          return result.fold((failure) {
+            // Log failure reason for developer debugging
+            // ignore: avoid_print
+            print('⚠️ _fetchUserProfile failed for ${user.uid}: ${failure.message}');
+            return null;
+          }, (u) => u);
         },
       );
 
   @override
   Future<Either<Failure, domain.User>> signIn({required String email, required String password}) async {
     try {
+      final start = DateTime.now();
       final credential = await _auth.signInWithEmailAndPassword(
         email: email.trim(),
         password: password,
       );
+      // Debug: log signin timing
+      final took = DateTime.now().difference(start);
+      // ignore: avoid_print
+      print('🔐 signIn for $email succeeded in ${took.inMilliseconds}ms');
       final uid = credential.user?.uid;
       if (uid == null) {
         return const Left(AuthFailure(message: 'Authentication failed'));
@@ -70,10 +87,14 @@ class AuthRepositoryImpl implements AuthRepository {
         (user) async => Right(user),
       );
     } on fb.FirebaseAuthException catch (e) {
+      // ignore: avoid_print
+      print('❌ signIn failed for $email: ${e.code} ${e.message}');
       return Left(ErrorMapper.mapExceptionToFailure(
         ErrorMapper.mapFirebaseAuthError(e.code, e.message),
       ));
     } catch (e) {
+      // ignore: avoid_print
+      print('❌ signIn unexpected error for $email: $e');
       return Left(ErrorMapper.mapExceptionToFailure(e));
     }
   }
@@ -107,6 +128,12 @@ class AuthRepositoryImpl implements AuthRepository {
       );
 
       await _usersCol.doc(fbUser.uid).set(userModel.toJson());
+
+      try {
+        await fbUser.sendEmailVerification();
+      } on fb.FirebaseAuthException {
+        // Keep signup successful even if sending verification email fails.
+      }
 
       return Right(userModel.toDomain());
     } on fb.FirebaseAuthException catch (e) {
@@ -142,6 +169,46 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       await _auth.sendPasswordResetEmail(email: email.trim());
       return const Right(unit);
+    } on fb.FirebaseAuthException catch (e) {
+      return Left(ErrorMapper.mapExceptionToFailure(
+        ErrorMapper.mapFirebaseAuthError(e.code, e.message),
+      ));
+    } catch (e) {
+      return Left(ErrorMapper.mapExceptionToFailure(e));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Unit>> sendEmailVerification() async {
+    try {
+      final fbUser = _auth.currentUser;
+      if (fbUser == null) {
+        return const Left(UnauthenticatedFailure());
+      }
+      await fbUser.sendEmailVerification();
+      return const Right(unit);
+    } on fb.FirebaseAuthException catch (e) {
+      return Left(ErrorMapper.mapExceptionToFailure(
+        ErrorMapper.mapFirebaseAuthError(e.code, e.message),
+      ));
+    } catch (e) {
+      return Left(ErrorMapper.mapExceptionToFailure(e));
+    }
+  }
+
+  @override
+  Future<Either<Failure, bool>> isCurrentUserEmailVerified({
+    bool reload = false,
+  }) async {
+    try {
+      final fbUser = _auth.currentUser;
+      if (fbUser == null) {
+        return const Left(UnauthenticatedFailure());
+      }
+      if (reload) {
+        await fbUser.reload();
+      }
+      return Right(_auth.currentUser?.emailVerified ?? fbUser.emailVerified);
     } on fb.FirebaseAuthException catch (e) {
       return Left(ErrorMapper.mapExceptionToFailure(
         ErrorMapper.mapFirebaseAuthError(e.code, e.message),

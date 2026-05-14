@@ -63,12 +63,21 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
       (user) async {
         _projectsSubscription = _projectRepository
             .watchProjects(userId: user.id)
-            .listen((result) {
-          result.fold(
-            (failure) => add(DashboardProjectsStreamFailed(failure.message)),
-            (projects) => add(DashboardProjectsStreamUpdated(projects)),
-          );
-        });
+            .listen(
+          (result) {
+            result.fold(
+              (failure) => add(DashboardProjectsStreamFailed(failure.message)),
+              (projects) => add(DashboardProjectsStreamUpdated(projects)),
+            );
+          },
+          onError: (error) {
+            add(
+              DashboardProjectsStreamFailed(
+                error.toString(),
+              ),
+            );
+          },
+        );
       },
     );
   }
