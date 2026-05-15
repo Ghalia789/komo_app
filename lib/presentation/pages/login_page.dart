@@ -64,12 +64,6 @@ class _LoginViewState extends State<LoginView> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text(state.infoMessage!)),
                     );
-                    Future.delayed(const Duration(milliseconds: 500), () {
-                      Navigator.of(context).pushNamed(
-                        RouteConstants.resetPassword,
-                        arguments: controller.text.trim(),
-                      );
-                    });
                   }
                   if (state.errorMessage != null) {
                     setState(() => error = state.errorMessage);
@@ -81,7 +75,7 @@ class _LoginViewState extends State<LoginView> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const Text(
-                        'Enter your email to receive a 6-digit password reset code',
+                        'Enter your email to receive a password reset link',
                         style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
                       ),
                       const SizedBox(height: 16),

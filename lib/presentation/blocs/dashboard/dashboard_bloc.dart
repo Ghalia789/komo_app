@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../domain/repositories/auth_repository.dart';
 import '../../../domain/repositories/project_repository.dart';
+import '../../../domain/repositories/task_repository.dart';
 import 'dashboard_event.dart';
 import 'dashboard_state.dart';
 
@@ -10,8 +11,10 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
   DashboardBloc({
     required AuthRepository authRepository,
     required ProjectRepository projectRepository,
+    required TaskRepository taskRepository,
   })  : _authRepository = authRepository,
         _projectRepository = projectRepository,
+        _taskRepository = taskRepository,
         super(const DashboardState()) {
     on<DashboardLoadProjects>(_onLoadProjects);
     on<DashboardProjectsStreamUpdated>(_onProjectsStreamUpdated);
@@ -25,6 +28,7 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
 
   final AuthRepository _authRepository;
   final ProjectRepository _projectRepository;
+  final TaskRepository _taskRepository;
   StreamSubscription? _projectsSubscription;
 
   Future<List<String>> _loadMemberAvatarsForProject(String projectId) async {
@@ -89,7 +93,15 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     final enrichedProjects = await Future.wait(
       event.projects.map((project) async {
         final avatars = await _loadMemberAvatarsForProject(project.id);
-        return project.copyWith(memberAvatars: avatars);
+        final tasksResult = await _taskRepository.getTasks(projectId: project.id);
+        final tasks = tasksResult.fold((_) => const [], (list) => list);
+        final totalTasks = tasks.length;
+        final completedTasks = tasks.where((t) => t.columnId == 'done').length;
+        return project.copyWith(
+          memberAvatars: avatars,
+          taskCount: totalTasks,
+          completedTasks: completedTasks,
+        );
       }),
     );
 

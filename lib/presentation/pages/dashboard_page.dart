@@ -4,6 +4,7 @@ import '../../core/theme/app_colors.dart';
 import '../../domain/entities/project.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../domain/repositories/project_repository.dart';
+import '../../domain/repositories/task_repository.dart';
 import '../../injection.dart';
 import '../blocs/blocs.dart';
 import '../widgets/widgets.dart';
@@ -31,6 +32,7 @@ class DashboardPage extends StatelessWidget {
       create: (context) => DashboardBloc(
         authRepository: locator<AuthRepository>(),
         projectRepository: locator<ProjectRepository>(),
+        taskRepository: locator<TaskRepository>(),
       )..add(DashboardLoadProjects()),
       child: const DashboardView(),
     );

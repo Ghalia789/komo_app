@@ -1,7 +1,10 @@
 import 'dart:io';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../domain/entities/project.dart';
 import '../../../domain/repositories/auth_repository.dart';
+import '../../../domain/repositories/project_repository.dart';
+import '../../../domain/repositories/task_repository.dart';
 import '../../../domain/repositories/user_repository.dart';
 import 'profile_event.dart';
 import 'profile_state.dart';
@@ -9,8 +12,12 @@ import 'profile_state.dart';
 class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
   ProfileBloc({
     required AuthRepository authRepository,
+    required ProjectRepository projectRepository,
+    required TaskRepository taskRepository,
     required UserRepository userRepository,
   })  : _authRepository = authRepository,
+        _projectRepository = projectRepository,
+        _taskRepository = taskRepository,
         _userRepository = userRepository,
         super(const ProfileState()) {
     on<ProfileLoadData>(_onLoadData);
@@ -19,6 +26,8 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
   }
 
   final AuthRepository _authRepository;
+  final ProjectRepository _projectRepository;
+  final TaskRepository _taskRepository;
   final UserRepository _userRepository;
 
   Future<void> _onLoadData(
@@ -29,20 +38,55 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
 
     final profileResult = await _userRepository.getCurrentUserProfile();
 
-    profileResult.fold(
-      (failure) => emit(state.copyWith(
+    await profileResult.fold(
+      (failure) async => emit(state.copyWith(
         isLoading: false,
         errorMessage: () => failure.message,
       )),
-      (user) => emit(state.copyWith(
-        isLoading: false,
-        name: user.name,
-        email: user.email,
-        role: user.role ?? '',
-        jobTitle: user.jobTitle ?? '',
-        company: user.company ?? '',
-        avatarUrl: () => user.avatarUrl,
-      )),
+      (user) async {
+        final projectsResult = await _projectRepository.getProjects(
+          userId: user.id,
+        );
+
+        final projects = projectsResult.fold(
+          (_) => <Project>[],
+          (list) => list,
+        );
+
+        var totalTasks = 0;
+        var completedTasks = 0;
+        final memberIds = <String>{};
+
+        for (final project in projects) {
+          final tasksResult = await _taskRepository.getTasks(
+            projectId: project.id,
+          );
+          final tasks = tasksResult.fold((_) => const [], (list) => list);
+          totalTasks += tasks.length;
+          completedTasks += tasks.where((t) => t.columnId == 'done').length;
+          memberIds.addAll(project.memberIds);
+          memberIds.add(project.ownerId);
+        }
+
+        final onTimePercentage = totalTasks == 0
+            ? 0
+            : ((completedTasks / totalTasks) * 100).round();
+
+        emit(state.copyWith(
+          isLoading: false,
+          name: user.name,
+          email: user.email,
+          role: user.role ?? '',
+          jobTitle: user.jobTitle ?? '',
+          company: user.company ?? '',
+          avatarUrl: () => user.avatarUrl,
+          tasksDone: completedTasks,
+          projectsCount: projects.length,
+          activeProjectsCount: projects.length,
+          teamMembersCount: memberIds.length,
+          onTimePercentage: onTimePercentage,
+        ));
+      },
     );
   }
 

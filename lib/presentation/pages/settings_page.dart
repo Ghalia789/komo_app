@@ -543,15 +543,11 @@ class SettingsView extends StatelessWidget {
       (failure) async => _showFeaturePlanned(context, failure.message),
       (user) async {
         final resetResult =
-            await authRepository.sendPasswordResetCode(email: user.email);
+            await authRepository.sendPasswordResetEmail(email: user.email);
         resetResult.fold(
           (failure) => _showFeaturePlanned(context, failure.message),
           (_) {
-            _showFeaturePlanned(context, 'Reset code sent to ${user.email}');
-            Navigator.of(context).pushNamed(
-              RouteConstants.resetPassword,
-              arguments: user.email,
-            );
+            _showFeaturePlanned(context, 'Password reset email sent to ${user.email}');
           },
         );
       },

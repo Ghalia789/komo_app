@@ -224,6 +224,14 @@ class KanbanView extends StatelessWidget {
           return Container(
             width: 240,
             margin: const EdgeInsets.only(right: 12),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: AppColors.textHint.withOpacity(0.2),
+              ),
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -265,6 +273,7 @@ class KanbanView extends StatelessWidget {
                 // Task list
                 Expanded(
                   child: ListView.builder(
+                    padding: EdgeInsets.zero,
                     itemCount: columnTasks.length,
                     itemBuilder: (context, index) {
                       return TaskCard(

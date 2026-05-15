@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/constants/app_constants.dart';
@@ -47,8 +48,12 @@ class _SplashPageState extends State<SplashPage>
     final isFirstLaunch = prefs.getBool(StorageKeys.isFirstLaunch) ?? true;
     if (!mounted) return;
 
+    final currentUser = FirebaseAuth.instance.currentUser;
+
     Navigator.of(context).pushReplacementNamed(
-      isFirstLaunch ? RouteConstants.onboarding : RouteConstants.login,
+      isFirstLaunch
+          ? RouteConstants.onboarding
+          : (currentUser != null ? RouteConstants.dashboard : RouteConstants.login),
     );
   }
 

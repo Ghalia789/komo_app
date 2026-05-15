@@ -5,6 +5,8 @@ import 'package:image_picker/image_picker.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/theme/app_colors.dart';
 import '../../domain/repositories/auth_repository.dart';
+import '../../domain/repositories/project_repository.dart';
+import '../../domain/repositories/task_repository.dart';
 import '../../injection.dart';
 import '../blocs/profile/profile_bloc_exports.dart';
 import '../widgets/widgets.dart';
@@ -18,6 +20,8 @@ class ProfilePage extends StatelessWidget {
     return BlocProvider(
       create: (context) => ProfileBloc(
         authRepository: locator(),
+        projectRepository: locator<ProjectRepository>(),
+        taskRepository: locator<TaskRepository>(),
         userRepository: locator(),
       )..add(ProfileLoadData()),
       child: const ProfileView(),
@@ -303,10 +307,10 @@ class ProfileView extends StatelessWidget {
     }
 
     final authRepository = locator<AuthRepository>();
-    final result = await authRepository.sendPasswordResetCode(email: email);
+    final result = await authRepository.sendPasswordResetEmail(email: email);
     result.fold(
       (failure) => _showInfo(context, failure.message),
-      (_) => _showInfo(context, 'Reset code sent to $email'),
+      (_) => _showInfo(context, 'Password reset email sent to $email'),
     );
   }
 
